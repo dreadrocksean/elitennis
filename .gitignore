@@ -1,0 +1,26 @@
+# dependencies
+node_modules
+functions/node_modules
+
+# build
+dist
+dist-ssr
+
+# test coverage
+coverage
+
+# env
+.env
+.env.local
+.env*.local
+functions/.env
+
+# firebase
+.firebase
+firebase-debug.log
+*-debug.log
+
+# misc
+.DS_Store
+*.local
+.vercel

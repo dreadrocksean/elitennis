@@ -1,0 +1,63 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.resetModules()
+  vi.doUnmock('firebase/app')
+  vi.doUnmock('firebase/auth')
+  vi.doUnmock('firebase/firestore')
+})
+
+function mockSdk({ initThrows = false } = {}) {
+  vi.doMock('firebase/app', () => ({
+    initializeApp: vi.fn(() => {
+      if (initThrows) throw new Error('bad config')
+      return { name: 'app' }
+    }),
+  }))
+  vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({ kind: 'auth' })) }))
+  vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(() => ({ kind: 'db' })) }))
+}
+
+describe('firebase config', () => {
+  it('is configured and lowercases the owner email when env is present', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'real-key')
+    vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'real-project')
+    vi.stubEnv('VITE_OWNER_EMAIL', 'Coach@Eli.COM')
+    mockSdk()
+    const mod = await import('../lib/firebase')
+    expect(mod.firebaseConfigured).toBe(true)
+    expect(mod.OWNER_EMAIL).toBe('coach@eli.com')
+    expect(mod.auth).toEqual({ kind: 'auth' })
+    expect(mod.db).toEqual({ kind: 'db' })
+    expect(mod.default).toEqual({ name: 'app' })
+  })
+
+  it('is not configured and owner email empty when env is missing', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+    vi.stubEnv('VITE_FIREBASE_PROJECT_ID', '')
+    vi.stubEnv('VITE_OWNER_EMAIL', '')
+    mockSdk()
+    const mod = await import('../lib/firebase')
+    expect(mod.firebaseConfigured).toBe(false)
+    expect(mod.OWNER_EMAIL).toBe('')
+  })
+
+  it('warns and continues when initialization throws', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'real-key')
+    vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'real-project')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockSdk({ initThrows: true })
+    const mod = await import('../lib/firebase')
+    expect(warn).toHaveBeenCalledWith(
+      'Firebase initialization failed. Using fallback content.',
+      expect.any(Error)
+    )
+    expect(mod.auth).toBeUndefined()
+    expect(mod.db).toBeUndefined()
+    warn.mockRestore()
+  })
+})

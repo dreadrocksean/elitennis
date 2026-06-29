@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --forest: #14401f;
+    --lime: #e7f24b;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-white text-forest-900 font-sans antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    @apply bg-lime text-forest-900;
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold
+           transition-all duration-300 active:scale-[0.97] focus:outline-none focus-visible:ring-2
+           focus-visible:ring-lime focus-visible:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-forest text-white hover:bg-forest-600 shadow-card;
+  }
+
+  .btn-lime {
+    @apply btn bg-lime text-forest-900 hover:brightness-95 shadow-card;
+  }
+
+  .btn-ghost {
+    @apply btn border border-forest/20 bg-white text-forest hover:border-forest/40;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-forest-50 px-4 py-1.5 text-xs font-semibold
+           uppercase tracking-[0.18em] text-forest-700;
+  }
+
+  .card {
+    @apply rounded-3xl border border-forest/10 bg-white shadow-card;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-forest/20 bg-white px-4 py-3 text-sm text-forest-900
+           placeholder:text-forest/40 focus:border-forest focus:outline-none focus:ring-2 focus:ring-lime/50;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-forest-700;
+  }
+}
+
+/* Reveal-on-scroll helper */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hide scrollbar on horizontal scrollers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

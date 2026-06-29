@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// EliTennisKC Firestore security rules
+//
+//   site/{doc}      content, availability  — public read, owner-only write
+//   bookings/{id}   slot reservations      — public can create a NEW hold and
+//                                            read availability; only owner can
+//                                            edit/delete. Payment status is set
+//                                            by the Cloud Function (admin SDK,
+//                                            which bypasses these rules).
+//
+// ⚠️ Set OWNER_EMAIL below to the same email as VITE_OWNER_EMAIL.
+// ─────────────────────────────────────────────────────────────────────────
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() == 'adrian@bartholomusic.com';
+    }
+
+    // Public site content + availability templates
+    match /site/{doc} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Bookings
+    match /bookings/{slotId} {
+      // Anyone can read so the calendar knows which slots are taken.
+      allow read: if true;
+
+      // Public create: only a fresh "pending" hold, and only on a slot that
+      // does not already exist (resource == null). Limits what fields/values
+      // a stranger can write.
+      allow create: if resource == null
+        && request.resource.data.status == 'pending'
+        && request.resource.data.amount == 4000
+        && request.resource.data.keys().hasOnly(
+             ['date','time','name','email','phone','notes','status','amount','createdAt']
+           )
+        && request.resource.data.date is string
+        && request.resource.data.time is string
+        && request.resource.data.email is string;
+
+      // Only the owner can modify or delete via the client.
+      // (The Stripe webhook uses the Admin SDK and is not restricted here.)
+      allow update, delete: if isOwner();
+    }
+  }
+}
