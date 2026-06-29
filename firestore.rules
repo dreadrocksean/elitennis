@@ -17,7 +17,6 @@ service cloud.firestore {
 
     function isOwner() {
       return request.auth != null
-        && request.auth.token.email_verified == true
         && request.auth.token.email.lower() == 'elijahdona77@gmail.com';
     }
 
