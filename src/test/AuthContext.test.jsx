@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, renderHook } from '@testing-library/react'
 
-const state = vi.hoisted(() => ({ user: null, owner: 'coach@eli.com' }))
+const state = vi.hoisted(() => ({ user: null, owners: ['coach@eli.com'] }))
 
 vi.mock('../lib/firebase', () => ({
   auth: { __auth: true },
-  get OWNER_EMAIL() {
-    return state.owner
+  get OWNER_EMAILS() {
+    return state.owners
   },
 }))
 
@@ -51,7 +51,7 @@ const renderProvider = () =>
 
 beforeEach(() => {
   state.user = null
-  state.owner = 'coach@eli.com'
+  state.owners = ['coach@eli.com']
 })
 
 describe('AuthProvider', () => {
@@ -83,9 +83,16 @@ describe('AuthProvider', () => {
 
   it('is not owner when no owner email is configured', () => {
     state.user = { email: 'coach@eli.com' }
-    state.owner = ''
+    state.owners = []
     renderProvider()
     expect(screen.getByTestId('owner')).toHaveTextContent('false')
+  })
+
+  it('recognizes any email in a multi-owner list', () => {
+    state.user = { email: 'Second@Owner.com' }
+    state.owners = ['coach@eli.com', 'second@owner.com']
+    renderProvider()
+    expect(screen.getByTestId('owner')).toHaveTextContent('true')
   })
 
   it('wires login and logout to firebase', () => {

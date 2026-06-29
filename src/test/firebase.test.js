@@ -32,7 +32,7 @@ describe('firebase config', () => {
     mockSdk()
     const mod = await import('../lib/firebase')
     expect(mod.firebaseConfigured).toBe(true)
-    expect(mod.OWNER_EMAIL).toBe('coach@eli.com')
+    expect(mod.OWNER_EMAILS).toEqual(['coach@eli.com'])
     expect(mod.auth).toEqual({ kind: 'auth' })
     expect(mod.db).toEqual({ kind: 'db' })
     expect(mod.default).toEqual({ name: 'app' })
@@ -50,7 +50,17 @@ describe('firebase config', () => {
     mockSdk()
     const mod = await import('../lib/firebase')
     expect(mod.firebaseConfigured).toBe(false)
-    expect(mod.OWNER_EMAIL).toBe('')
+    expect(mod.OWNER_EMAILS).toEqual([])
+  })
+
+  it('parses a comma-separated list of owner emails', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'real-key')
+    vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'real-project')
+    vi.stubEnv('VITE_OWNER_EMAIL', 'Coach@Eli.com, owner2@kc.com , ')
+    mockSdk()
+    const mod = await import('../lib/firebase')
+    expect(mod.OWNER_EMAILS).toEqual(['coach@eli.com', 'owner2@kc.com'])
   })
 
   it('warns and continues when initialization throws', async () => {

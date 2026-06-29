@@ -5,7 +5,7 @@ import {
   signOut as fbSignOut,
   sendEmailVerification,
 } from 'firebase/auth'
-import { auth, OWNER_EMAIL } from '../lib/firebase'
+import { auth, OWNER_EMAILS } from '../lib/firebase'
 
 const AuthContext = createContext(null)
 
@@ -21,9 +21,9 @@ export function AuthProvider({ children }) {
     return unsub
   }, [])
 
-  // Owner = authenticated AND matches the configured owner email.
+  // Owner = authenticated AND email is in the configured owner list.
   const isOwner = Boolean(
-    user && OWNER_EMAIL && user.email?.toLowerCase() === OWNER_EMAIL
+    user && user.email && OWNER_EMAILS.includes(user.email.toLowerCase())
   )
 
   const login = (email, password) =>

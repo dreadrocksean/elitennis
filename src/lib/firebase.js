@@ -37,7 +37,9 @@ try {
 
 export { auth, db };
 
-export const OWNER_EMAIL = (
-  import.meta.env.VITE_OWNER_EMAIL || ""
-).toLowerCase();
+// One or more owner emails (comma-separated) allowed into /admin.
+export const OWNER_EMAILS = (import.meta.env.VITE_OWNER_EMAIL || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 export default app;
