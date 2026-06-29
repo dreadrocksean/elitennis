@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, Star } from 'lucide-react'
+import { Link } from "react-router-dom";
+import { ArrowRight, Star } from "lucide-react";
 
 export default function Hero({ hero, pricing }) {
   return (
@@ -15,9 +15,14 @@ export default function Hero({ hero, pricing }) {
           </span>
 
           <h1 className="mt-6 font-display text-5xl leading-[0.95] text-white sm:text-6xl lg:text-7xl">
-            {hero.title.split(' ').map((w, i) => (
-              <span key={i} className={i === hero.title.split(' ').length - 1 ? 'text-lime' : ''}>
-                {w}{' '}
+            {hero.title.split(" ").map((w, i) => (
+              <span
+                key={i}
+                className={
+                  i === hero.title.split(" ").length - 1 ? "text-lime" : ""
+                }
+              >
+                {w}{" "}
               </span>
             ))}
           </h1>
@@ -30,19 +35,26 @@ export default function Hero({ hero, pricing }) {
             <Link to="/book" className="btn-lime text-base">
               {hero.ctaPrimary} <ArrowRight size={18} />
             </Link>
-            <a href="#about" className="btn-ghost border-white/25 bg-transparent text-white hover:border-lime">
+            <a
+              href="#about"
+              className="btn-ghost border-white/25 bg-transparent text-white hover:border-lime"
+            >
               {hero.ctaSecondary}
             </a>
           </div>
 
           <div className="mt-10 flex items-center gap-6 text-sm text-white/70">
             <div>
-              <span className="block font-display text-2xl text-white">{pricing?.price || '$40'}</span>
-              {pricing?.unit || '/ hour'}
+              <span className="block font-display text-2xl text-white">
+                {pricing?.price ?? "$40"}
+              </span>
+              {pricing?.unit ?? "/ hour"}
             </div>
             <div className="h-10 w-px bg-white/15" />
             <div>
-              <span className="block font-display text-2xl text-white">Kids & Adults</span>
+              <span className="block font-display text-2xl text-white">
+                Kids & Adults
+              </span>
               all skill levels
             </div>
           </div>
@@ -56,12 +68,14 @@ export default function Hero({ hero, pricing }) {
               alt="Coach Eli on the tennis court"
               className="h-full w-full object-cover"
               onError={(e) => {
-                e.currentTarget.style.display = 'none'
-                e.currentTarget.nextSibling.style.display = 'flex'
+                e.currentTarget.style.display = "none";
+                e.currentTarget.nextSibling.style.display = "flex";
               }}
             />
             <div className="absolute inset-0 hidden items-center justify-center bg-forest-600 text-center text-white/60">
-              <span className="px-8 text-sm">Add <code>/public/images/hero.jpg</code></span>
+              <span className="px-8 text-sm">
+                Add <code>/public/images/hero.jpg</code>
+              </span>
             </div>
           </div>
 
@@ -72,5 +86,5 @@ export default function Hero({ hero, pricing }) {
         </div>
       </div>
     </section>
-  )
+  );
 }
