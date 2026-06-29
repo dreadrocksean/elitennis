@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
 
   // Owner = authenticated AND email is in the configured owner list.
   const isOwner = Boolean(
-    user && user.email && OWNER_EMAILS.includes(user.email.toLowerCase())
+    user?.email && OWNER_EMAILS.includes(user.email.toLowerCase())
   )
 
   const login = (email, password) =>

@@ -8,10 +8,10 @@ let idc = 0
 const newId = () => `g_${Date.now()}_${idc++}`
 
 export default function GalleryAdmin({ content }) {
-  const [items, setItems] = useState(content.gallery || [])
+  const [items, setItems] = useState(content.gallery ?? [])
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => setItems(content.gallery || []), [content.gallery])
+  useEffect(() => setItems(content.gallery ?? []), [content.gallery])
 
   const update = (id, key, v) =>
     setItems(items.map((it) => (it.id === id ? { ...it, [key]: v } : it)))

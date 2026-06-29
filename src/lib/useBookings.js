@@ -34,7 +34,7 @@ export function useAvailability() {
     return unsub
   }, [])
 
-  return { availability: availability || defaultAvailability, loading }
+  return { availability: availability ?? defaultAvailability, loading }
 }
 
 export const defaultAvailability = {
@@ -101,8 +101,8 @@ export async function createPendingBooking({ date, time, name, email, phone, not
     time,
     name,
     email,
-    phone: phone || '',
-    notes: notes || '',
+    phone: phone ?? '',
+    notes: notes ?? '',
     status: 'pending',
     amount: 4000,
     createdAt: new Date().toISOString(),

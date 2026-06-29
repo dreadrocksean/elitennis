@@ -23,13 +23,13 @@ export default function AvailabilityAdmin() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setWeekly(availability.weekly || defaultAvailability.weekly)
-    setBlackouts(availability.blackouts || [])
+    setWeekly(availability.weekly ?? defaultAvailability.weekly)
+    setBlackouts(availability.blackouts ?? [])
     setLeadHours(availability.leadHours ?? 12)
   }, [availability])
 
   const toggleSlot = (dow, time) => {
-    const cur = weekly[dow] || []
+    const cur = weekly[dow] ?? []
     const next = cur.includes(time) ? cur.filter((t) => t !== time) : [...cur, time].sort()
     setWeekly({ ...weekly, [dow]: next })
   }
@@ -69,12 +69,12 @@ export default function AvailabilityAdmin() {
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-display text-sm text-forest">{label}</span>
                 <span className="text-xs text-forest-700/50">
-                  {(weekly[dow] || []).length} slot{(weekly[dow] || []).length === 1 ? '' : 's'}
+                  {(weekly[dow] ?? []).length} slot{(weekly[dow] ?? []).length === 1 ? '' : 's'}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {TIME_OPTIONS.map((t) => {
-                  const on = (weekly[dow] || []).includes(t)
+                  const on = (weekly[dow] ?? []).includes(t)
                   return (
                     <button
                       key={t}

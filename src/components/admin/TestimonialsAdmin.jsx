@@ -8,10 +8,10 @@ let idc = 0
 const newId = () => `t_${Date.now()}_${idc++}`
 
 export default function TestimonialsAdmin({ content }) {
-  const [items, setItems] = useState(content.testimonials || [])
+  const [items, setItems] = useState(content.testimonials ?? [])
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => setItems(content.testimonials || []), [content.testimonials])
+  useEffect(() => setItems(content.testimonials ?? []), [content.testimonials])
 
   const update = (id, key, v) =>
     setItems(items.map((it) => (it.id === id ? { ...it, [key]: v } : it)))
@@ -53,7 +53,7 @@ export default function TestimonialsAdmin({ content }) {
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button key={n} onClick={() => update(it.id, 'rating', n)} aria-label={`${n} stars`}>
-                    <Star size={20} className={n <= (it.rating || 5) ? 'fill-lime text-lime' : 'text-forest/20'} />
+                    <Star size={20} className={n <= (it.rating ?? 5) ? 'fill-lime text-lime' : 'text-forest/20'} />
                   </button>
                 ))}
               </div>

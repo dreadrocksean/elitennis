@@ -47,7 +47,7 @@ export default function BookingsAdmin() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard label="Confirmed" value={confirmed.length} tone="green" />
           <StatCard label="Pending payment" value={pending.length} tone="amber" />
-          <StatCard label="Revenue (paid)" value={`$${(confirmed.reduce((s, b) => s + (b.amount || 0), 0) / 100).toFixed(0)}`} tone="forest" />
+          <StatCard label="Revenue (paid)" value={`$${(confirmed.reduce((s, b) => s + (b.amount ?? 0), 0) / 100).toFixed(0)}`} tone="forest" />
         </div>
       </Panel>
 

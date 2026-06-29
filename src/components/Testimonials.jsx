@@ -21,7 +21,7 @@ export default function Testimonials({ testimonials }) {
             >
               <Quote className="absolute right-6 top-6 text-lime/30" size={40} />
               <div className="flex gap-0.5">
-                {Array.from({ length: t.rating || 5 }).map((_, s) => (
+                {Array.from({ length: t.rating ?? 5 }).map((_, s) => (
                   <Star key={s} size={16} className="fill-lime text-lime" />
                 ))}
               </div>

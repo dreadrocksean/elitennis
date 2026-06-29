@@ -36,7 +36,7 @@ export default function BookingCalendar({ availability, bookings, value, onChang
     const [y, mo, d] = dateKey.split('-').map(Number)
     const dow = new Date(y, mo - 1, d).getDay()
     if (availability.blackouts?.includes(dateKey)) return []
-    const weekly = availability.weekly?.[dow] || []
+    const weekly = availability.weekly?.[dow] ?? []
     return weekly
       .filter((t) => !takenSet.has(`${dateKey}_${t}`))
       .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12))
