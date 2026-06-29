@@ -15,7 +15,7 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <Navbar onDark />
       <main>
-        <Hero hero={content.hero} />
+        <Hero hero={content.hero} pricing={content.pricing} />
         <About bio={content.bio} stats={content.stats} />
         <Pricing pricing={content.pricing} />
         <Gallery gallery={content.gallery} />

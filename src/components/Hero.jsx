@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Star } from 'lucide-react'
 
-export default function Hero({ hero }) {
+export default function Hero({ hero, pricing }) {
   return (
     <section className="relative overflow-hidden bg-forest pt-28 pb-20 sm:pt-36 sm:pb-28">
       {/* decorative lime slash */}
@@ -37,8 +37,8 @@ export default function Hero({ hero }) {
 
           <div className="mt-10 flex items-center gap-6 text-sm text-white/70">
             <div>
-              <span className="block font-display text-2xl text-white">$40</span>
-              per hour
+              <span className="block font-display text-2xl text-white">{pricing?.price || '$40'}</span>
+              {pricing?.unit || '/ hour'}
             </div>
             <div className="h-10 w-px bg-white/15" />
             <div>

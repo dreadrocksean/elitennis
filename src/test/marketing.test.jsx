@@ -12,14 +12,23 @@ import { defaultContent, CONTACT } from '../data/siteContent'
 const wrap = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>)
 
 describe('Hero', () => {
-  it('renders the hero copy and highlights the last word', () => {
-    wrap(<Hero hero={defaultContent.hero} />)
+  it('renders the hero copy, db-driven pricing, and highlights the last word', () => {
+    wrap(<Hero hero={defaultContent.hero} pricing={{ price: '$55', unit: '/ session' }} />)
     expect(screen.getByText(defaultContent.hero.badge)).toBeInTheDocument()
     expect(screen.getByText(defaultContent.hero.subtitle)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Book a Session/i })).toBeInTheDocument()
+    // pricing reads from props (Firestore content)
+    expect(screen.getByText('$55')).toBeInTheDocument()
+    expect(screen.getByText('/ session')).toBeInTheDocument()
     // last word of the title is rendered in the lime span
     const last = screen.getByText('Lessons', { exact: false })
     expect(last).toHaveClass('text-lime')
+  })
+
+  it('falls back to default pricing when none is provided', () => {
+    wrap(<Hero hero={defaultContent.hero} />)
+    expect(screen.getByText('$40')).toBeInTheDocument()
+    expect(screen.getByText('/ hour')).toBeInTheDocument()
   })
 
   it('hides the image and shows the placeholder on error', () => {
