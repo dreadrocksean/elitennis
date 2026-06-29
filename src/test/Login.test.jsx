@@ -36,7 +36,12 @@ beforeEach(() => {
   nav.spy.mockClear()
   toast.success.mockClear()
   toast.error.mockClear()
-  auth.value = { login: vi.fn(), isOwner: false, user: null }
+  auth.value = {
+    login: vi.fn(),
+    sendVerification: vi.fn().mockResolvedValue(),
+    isOwner: false,
+    user: null,
+  }
 })
 
 describe('Login', () => {
@@ -53,6 +58,33 @@ describe('Login', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Welcome back, Coach!'))
     expect(auth.value.login).toHaveBeenCalledWith('eli@kc.com', 'secret')
     expect(nav.spy).toHaveBeenCalledWith('/admin')
+  })
+
+  it('greets a verified owner without sending a verification email', async () => {
+    auth.value.login = vi.fn().mockResolvedValue({ user: { emailVerified: true } })
+    renderLogin()
+    fillAndSubmit()
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Welcome back, Coach!'))
+    expect(auth.value.sendVerification).not.toHaveBeenCalled()
+    expect(nav.spy).toHaveBeenCalledWith('/admin')
+  })
+
+  it('sends a verification email when the account is unverified', async () => {
+    auth.value.login = vi.fn().mockResolvedValue({ user: { emailVerified: false } })
+    renderLogin()
+    fillAndSubmit()
+    await waitFor(() => expect(auth.value.sendVerification).toHaveBeenCalled())
+    expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/verify your email/i))
+    expect(nav.spy).toHaveBeenCalledWith('/admin')
+  })
+
+  it('still signs in if the verification email fails to send', async () => {
+    auth.value.login = vi.fn().mockResolvedValue({ user: { emailVerified: false } })
+    auth.value.sendVerification = vi.fn().mockRejectedValue(new Error('too many requests'))
+    renderLogin()
+    fillAndSubmit()
+    await waitFor(() => expect(nav.spy).toHaveBeenCalledWith('/admin'))
+    expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/verify your email/i))
   })
 
   it('shows a friendly message for invalid credentials', async () => {

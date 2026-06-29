@@ -17,13 +17,19 @@ vi.mock('firebase/auth', () => ({
   }),
   signInWithEmailAndPassword: vi.fn(async () => ({ user: state.user })),
   signOut: vi.fn(async () => {}),
+  sendEmailVerification: vi.fn(async () => {}),
 }))
 
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  sendEmailVerification,
+} from 'firebase/auth'
 import { AuthProvider, useAuth } from '../contexts/AuthContext.jsx'
 
 function Consumer() {
-  const { user, isOwner, loading, login, logout } = useAuth()
+  const { user, isOwner, loading, login, logout, sendVerification } = useAuth()
   return (
     <div>
       <span data-testid="email">{user?.email || 'none'}</span>
@@ -31,6 +37,7 @@ function Consumer() {
       <span data-testid="loading">{String(loading)}</span>
       <button onClick={() => login('a@b.com', 'pw')}>login</button>
       <button onClick={() => logout()}>logout</button>
+      <button onClick={() => sendVerification()}>verify</button>
     </div>
   )
 }
@@ -88,6 +95,12 @@ describe('AuthProvider', () => {
     fireEvent.click(screen.getByText('logout'))
     expect(signOut).toHaveBeenCalledWith({ __auth: true })
     expect(onAuthStateChanged).toHaveBeenCalled()
+  })
+
+  it('sends an email verification for the current user', () => {
+    renderProvider()
+    fireEvent.click(screen.getByText('verify'))
+    expect(sendEmailVerification).toHaveBeenCalled()
   })
 })
 

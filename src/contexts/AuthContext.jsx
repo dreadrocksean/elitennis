@@ -3,6 +3,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
+  sendEmailVerification,
 } from 'firebase/auth'
 import { auth, OWNER_EMAIL } from '../lib/firebase'
 
@@ -30,8 +31,12 @@ export function AuthProvider({ children }) {
 
   const logout = () => fbSignOut(auth)
 
+  // Send the signed-in user a verification email (required before admin writes,
+  // since the Firestore rules check email_verified).
+  const sendVerification = () => sendEmailVerification(auth.currentUser)
+
   return (
-    <AuthContext.Provider value={{ user, isOwner, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, isOwner, loading, login, logout, sendVerification }}>
       {children}
     </AuthContext.Provider>
   )

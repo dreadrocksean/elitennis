@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { CONTACT } from '../data/siteContent'
 
 export default function Login() {
-  const { login, isOwner, user } = useAuth()
+  const { login, sendVerification, isOwner, user } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,8 +18,18 @@ export default function Login() {
     e.preventDefault()
     setBusy(true)
     try {
-      await login(email.trim(), password)
-      toast.success('Welcome back, Coach!')
+      const cred = await login(email.trim(), password)
+      if (cred.user && !cred.user.emailVerified) {
+        // Best-effort: send a verification link so admin writes are allowed.
+        try {
+          await sendVerification()
+        } catch {
+          // Ignore send failures (e.g. rate limiting); login still succeeds.
+        }
+        toast.success('Signed in! Check your inbox to verify your email, then sign in again to edit content.')
+      } else {
+        toast.success('Welcome back, Coach!')
+      }
       navigate('/admin')
     } catch (err) {
       const code = err?.code || ''

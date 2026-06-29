@@ -23,7 +23,11 @@ describe('firebase config', () => {
   it('is configured and lowercases the owner email when env is present', async () => {
     vi.resetModules()
     vi.stubEnv('VITE_FIREBASE_API_KEY', 'real-key')
+    vi.stubEnv('VITE_FIREBASE_AUTH_DOMAIN', 'real.firebaseapp.com')
     vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'real-project')
+    vi.stubEnv('VITE_FIREBASE_STORAGE_BUCKET', 'real.appspot.com')
+    vi.stubEnv('VITE_FIREBASE_MESSAGING_SENDER_ID', 'real-sender')
+    vi.stubEnv('VITE_FIREBASE_APP_ID', 'real-app')
     vi.stubEnv('VITE_OWNER_EMAIL', 'Coach@Eli.COM')
     mockSdk()
     const mod = await import('../lib/firebase')
@@ -37,7 +41,11 @@ describe('firebase config', () => {
   it('is not configured and owner email empty when env is missing', async () => {
     vi.resetModules()
     vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+    vi.stubEnv('VITE_FIREBASE_AUTH_DOMAIN', '')
     vi.stubEnv('VITE_FIREBASE_PROJECT_ID', '')
+    vi.stubEnv('VITE_FIREBASE_STORAGE_BUCKET', '')
+    vi.stubEnv('VITE_FIREBASE_MESSAGING_SENDER_ID', '')
+    vi.stubEnv('VITE_FIREBASE_APP_ID', '')
     vi.stubEnv('VITE_OWNER_EMAIL', '')
     mockSdk()
     const mod = await import('../lib/firebase')
