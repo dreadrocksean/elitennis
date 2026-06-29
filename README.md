@@ -21,16 +21,16 @@ A slick, modern single-page app for Coach Eli's private tennis lessons in Kansas
 - A [Firebase](https://console.firebase.google.com) project (Blaze plan — required for Cloud Functions + outbound Stripe calls)
 - A [Stripe](https://dashboard.stripe.com) account
 - A [Vercel](https://vercel.com) account
-- CLIs: `npm i -g firebase-tools vercel`
+- CLIs: `yarn global add firebase-tools vercel`
 
 ---
 
 ## 2. Local setup
 
 ```bash
-npm install
+yarn                        # install dependencies
 cp .env.example .env        # then fill in the values (see below)
-npm run dev                 # http://localhost:5173
+yarn dev                    # http://localhost:5173
 ```
 
 ### Environment variables (`.env`)
