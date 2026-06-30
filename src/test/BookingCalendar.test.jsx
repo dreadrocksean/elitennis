@@ -178,3 +178,45 @@ describe('BookingCalendar slots', () => {
     expect(screen.getByText(/No open times left/)).toBeInTheDocument();
   });
 });
+
+describe('BookingCalendar initial month', () => {
+  it('opens on the first month that actually has availability', () => {
+    // 20-day lead from Dec 15 -> nothing bookable until January.
+    render(
+      <BookingCalendar
+        availability={{ weekly: allDays, leadHours: 24 * 20 }}
+        bookings={[]}
+        value={null}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByText('January 2027')).toBeInTheDocument();
+    expect(screen.getByLabelText('Previous month')).toBeEnabled();
+  });
+
+  it('does not snap back to the open month after the visitor navigates', () => {
+    const { rerender } = render(
+      <BookingCalendar
+        availability={{ weekly: allDays, leadHours: 0 }}
+        bookings={[]}
+        value={null}
+        onChange={() => {}}
+      />,
+    );
+    // Starts on December (today has openings); the visitor steps forward.
+    fireEvent.click(screen.getByLabelText('Next month'));
+    expect(screen.getByText('January 2027')).toBeInTheDocument();
+
+    // Availability reloads with a much longer lead (first opening jumps to a
+    // later month), but the visitor already navigated, so the view stays put.
+    rerender(
+      <BookingCalendar
+        availability={{ weekly: allDays, leadHours: 24 * 100 }}
+        bookings={[]}
+        value={null}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByText('January 2027')).toBeInTheDocument();
+  });
+});

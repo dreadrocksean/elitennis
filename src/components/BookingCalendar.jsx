@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   buildMonthGrid,
@@ -29,7 +29,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
   }, []);
   // Anchor "today" and the visible month to Central time, not the visitor's.
   const todayKey = zonedDateKey(now);
-  const [todayYear, todayMonth] = todayKey.split('-').map(Number);
+  const [todayYear, todayMonth, todayDay] = todayKey.split('-').map(Number);
   const [view, setView] = useState({ year: todayYear, month: todayMonth - 1 });
 
   const grid = useMemo(() => buildMonthGrid(view.year, view.month), [view]);
@@ -49,6 +49,26 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
       .filter((t) => !takenSet.has(`${dateKey}_${t}`))
       .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12, now));
   };
+
+  // First day (scanning ~1 year from today) that has an open slot, so we can
+  // open on a month that actually has availability rather than one that's all
+  // disabled.
+  const firstAvailableKey = useMemo(() => {
+    for (let i = 0; i < 366; i++) {
+      const key = toDateKey(new Date(todayYear, todayMonth - 1, todayDay + i));
+      if (slotsForDate(key).length > 0) return key;
+    }
+    return null;
+  }, [todayKey, availability, takenSet, now]);
+
+  // Once availability/bookings load, jump to that first open month — unless the
+  // visitor has already navigated the calendar themselves.
+  const navigated = useRef(false);
+  useEffect(() => {
+    if (navigated.current || !firstAvailableKey) return;
+    const [y, mo] = firstAvailableKey.split('-').map(Number);
+    setView({ year: y, month: mo - 1 });
+  }, [firstAvailableKey]);
 
   const dayHasOpenSlots = (dateKey, inMonth) => {
     if (!inMonth) return false;
@@ -71,24 +91,26 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
           <div className="flex gap-1">
             <button
               disabled={!canGoPrev}
-              onClick={() =>
+              onClick={() => {
+                navigated.current = true;
                 setView((v) => {
                   const m = v.month - 1;
                   return m < 0 ? { year: v.year - 1, month: 11 } : { ...v, month: m };
-                })
-              }
+                });
+              }}
               className="grid h-9 w-9 place-items-center rounded-lg border border-forest/15 text-forest disabled:opacity-30 hover:enabled:bg-forest-50"
               aria-label="Previous month"
             >
               <ChevronLeft size={18} />
             </button>
             <button
-              onClick={() =>
+              onClick={() => {
+                navigated.current = true;
                 setView((v) => {
                   const m = v.month + 1;
                   return m > 11 ? { year: v.year + 1, month: 0 } : { ...v, month: m };
-                })
-              }
+                });
+              }}
               className="grid h-9 w-9 place-items-center rounded-lg border border-forest/15 text-forest hover:bg-forest-50"
               aria-label="Next month"
             >
@@ -128,7 +150,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
               >
                 {date.getDate()}
                 {open && !isSelected && (
-                  <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-lime" />
+                  <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-forest" />
                 )}
                 {isToday && !isSelected && (
                   <span className="absolute inset-x-3 bottom-1 h-px bg-forest/30" />
@@ -139,7 +161,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
         </div>
 
         <p className="mt-4 flex items-center gap-2 text-xs text-forest-700/60">
-          <span className="h-2 w-2 rounded-full bg-lime" /> Available days
+          <span className="h-2 w-2 rounded-full bg-forest" /> Available days
         </p>
       </div>
 
