@@ -1,0 +1,2 @@
+# On staged JS/JSX: ESLint + tests related to the changed files.
+npx lint-staged

@@ -1,5 +1,5 @@
 // Shared panel wrapper + small primitives for admin editors.
-export function Panel({ title, description, children, action }) {
+export const Panel = ({ title, description, children, action }) => {
   return (
     <section className="card p-6 sm:p-7">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -11,15 +11,15 @@ export function Panel({ title, description, children, action }) {
       </div>
       {children}
     </section>
-  )
-}
+  );
+};
 
-export function Field({ label, children, hint }) {
+export const Field = ({ label, children, hint }) => {
   return (
     <label className="block">
       <span className="label">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-xs text-forest-700/50">{hint}</span>}
     </label>
-  )
-}
+  );
+};

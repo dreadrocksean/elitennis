@@ -1,30 +1,30 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
-import { CONTACT } from '../data/siteContent'
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+import { CONTACT } from '../data/siteContent';
 
 const LINKS = [
   { label: 'About', href: '/#about' },
   { label: 'Pricing', href: '/#pricing' },
   { label: 'Gallery', href: '/#gallery' },
   { label: 'Reviews', href: '/#testimonials' },
-]
+];
 
-export default function Navbar({ onDark = false }) {
-  const [scrolled, setScrolled] = useState(false)
-  const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
+const Navbar = ({ onDark = false }) => {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Light text only while floating transparently over the dark hero.
   // On light pages, or once scrolled, the bar is solid white with dark text.
-  const light = onDark && !scrolled
+  const light = onDark && !scrolled;
 
   return (
     <header
@@ -37,7 +37,9 @@ export default function Navbar({ onDark = false }) {
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-forest text-lime">
             <RacketMark />
           </span>
-          <span className={`font-display text-lg tracking-tight ${light ? 'text-white' : 'text-forest'}`}>
+          <span
+            className={`font-display text-lg tracking-tight ${light ? 'text-white' : 'text-forest'}`}
+          >
             {CONTACT.brand}
           </span>
         </Link>
@@ -84,8 +86,8 @@ export default function Navbar({ onDark = false }) {
           ))}
           <button
             onClick={() => {
-              setOpen(false)
-              navigate('/book')
+              setOpen(false);
+              navigate('/book');
             }}
             className="btn-lime mt-2 w-full"
           >
@@ -94,15 +96,17 @@ export default function Navbar({ onDark = false }) {
         </div>
       )}
     </header>
-  )
-}
+  );
+};
 
-function RacketMark() {
+const RacketMark = () => {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.6" />
       <path d="M9 6l6 6M15 6l-6 6" stroke="currentColor" strokeWidth="1.2" />
       <path d="M12 15.5V22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
-  )
-}
+  );
+};
+
+export default Navbar;

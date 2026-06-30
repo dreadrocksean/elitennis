@@ -1,52 +1,57 @@
-import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, Lock } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import { CONTACT } from '../data/siteContent'
+import { useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { ArrowLeft, Loader2, Lock } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import { CONTACT } from '../data/siteContent';
 
-export default function Login() {
-  const { login, sendVerification, isOwner, user } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
+const Login = () => {
+  const { login, sendVerification, isOwner, user } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  if (isOwner) return <Navigate to="/admin" replace />
+  if (isOwner) return <Navigate to="/admin" replace />;
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setBusy(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
     try {
-      const cred = await login(email.trim(), password)
+      const cred = await login(email.trim(), password);
       if (cred.user && !cred.user.emailVerified) {
         // Best-effort: send a verification link so admin writes are allowed.
         try {
-          await sendVerification()
+          await sendVerification();
         } catch {
           // Ignore send failures (e.g. rate limiting); login still succeeds.
         }
-        toast.success('Signed in! Check your inbox to verify your email, then sign in again to edit content.')
+        toast.success(
+          'Signed in! Check your inbox to verify your email, then sign in again to edit content.',
+        );
       } else {
-        toast.success('Welcome back, Coach!')
+        toast.success('Welcome back, Coach!');
       }
-      navigate('/admin')
+      navigate('/admin');
     } catch (err) {
-      const code = err?.code || ''
+      const code = err?.code || '';
       toast.error(
         code.includes('invalid') || code.includes('wrong')
           ? 'Invalid email or password.'
-          : err.message || 'Login failed.'
-      )
+          : err.message || 'Login failed.',
+      );
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   return (
     <div className="grid min-h-screen place-items-center bg-forest px-5">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-lime hover:text-white">
+        <Link
+          to="/"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-lime hover:text-white"
+        >
           <ArrowLeft size={16} /> Back to site
         </Link>
 
@@ -86,7 +91,11 @@ export default function Login() {
                 autoComplete="current-password"
               />
             </div>
-            <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={busy}
+              className="btn-primary w-full disabled:opacity-50"
+            >
               {busy ? <Loader2 size={18} className="animate-spin" /> : 'Sign in'}
             </button>
           </form>
@@ -99,5 +108,7 @@ export default function Login() {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default Login;

@@ -1,9 +1,9 @@
-import { Link } from 'react-router-dom'
-import { Check, ArrowRight } from 'lucide-react'
-import { useReveal } from '../lib/useReveal'
+import { Link } from 'react-router-dom';
+import { Check, ArrowRight } from 'lucide-react';
+import { useReveal } from '../lib/useReveal';
 
-export default function Pricing({ pricing }) {
-  const ref = useReveal()
+const Pricing = ({ pricing }) => {
+  const ref = useReveal();
 
   return (
     <section id="pricing" className="bg-forest-50 py-20 sm:py-28">
@@ -14,8 +14,8 @@ export default function Pricing({ pricing }) {
             One rate. Every session tailored to you.
           </h2>
           <p className="mt-4 text-forest-900/70">
-            No packages to puzzle over — just focused, one-on-one coaching that meets you
-            where you are.
+            No packages to puzzle over — just focused, one-on-one coaching that meets you where you
+            are.
           </p>
         </div>
 
@@ -55,5 +55,7 @@ export default function Pricing({ pricing }) {
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
+
+export default Pricing;

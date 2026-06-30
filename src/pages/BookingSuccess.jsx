@@ -1,14 +1,14 @@
-import { Link, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, CalendarCheck, ArrowRight } from 'lucide-react'
-import Navbar from '../components/Navbar.jsx'
-import Footer from '../components/Footer.jsx'
-import { formatDateLong, formatTime } from '../lib/dateUtils'
-import { CONTACT } from '../data/siteContent'
+import { Link, useSearchParams } from 'react-router-dom';
+import { CheckCircle2, CalendarCheck, ArrowRight } from 'lucide-react';
+import Navbar from '../components/Navbar.jsx';
+import Footer from '../components/Footer.jsx';
+import { formatDateLong, formatTime } from '../lib/dateUtils';
+import { CONTACT } from '../data/siteContent';
 
-export default function BookingSuccess() {
-  const [params] = useSearchParams()
-  const date = params.get('date')
-  const time = params.get('time')
+const BookingSuccess = () => {
+  const [params] = useSearchParams();
+  const date = params.get('date');
+  const time = params.get('time');
 
   return (
     <div className="min-h-screen bg-forest-50">
@@ -20,8 +20,8 @@ export default function BookingSuccess() {
           </span>
           <h1 className="mt-6 text-3xl text-forest sm:text-4xl">You're booked!</h1>
           <p className="mt-3 text-forest-900/70">
-            Payment received and your session is confirmed. A receipt is on its way to your
-            inbox. Coach Eli will reach out with court details before your lesson.
+            Payment received and your session is confirmed. A receipt is on its way to your inbox.
+            Coach Eli will reach out with court details before your lesson.
           </p>
 
           {date && time && (
@@ -37,7 +37,10 @@ export default function BookingSuccess() {
             <Link to="/" className="btn-primary w-full sm:w-auto">
               Back to home <ArrowRight size={16} />
             </Link>
-            <a href={CONTACT.phoneHref} className="text-sm font-medium text-forest-700 hover:text-forest">
+            <a
+              href={CONTACT.phoneHref}
+              className="text-sm font-medium text-forest-700 hover:text-forest"
+            >
               Questions? Call {CONTACT.phone}
             </a>
           </div>
@@ -45,5 +48,7 @@ export default function BookingSuccess() {
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
+
+export default BookingSuccess;

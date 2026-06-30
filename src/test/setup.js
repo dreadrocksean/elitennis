@@ -1,6 +1,6 @@
-import '@testing-library/jest-dom/vitest'
-import { afterEach, vi } from 'vitest'
-import { cleanup } from '@testing-library/react'
+import '@testing-library/jest-dom/vitest';
+import { afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
 
 // ── Controllable IntersectionObserver ───────────────────────────────────────
 // useReveal relies on IntersectionObserver, which jsdom doesn't implement.
@@ -8,33 +8,33 @@ import { cleanup } from '@testing-library/react'
 // callback to simulate elements entering/leaving the viewport.
 class MockIntersectionObserver {
   constructor(cb, options) {
-    this.cb = cb
-    this.options = options
-    this.observed = []
-    this.disconnected = false
-    globalThis.__io = this
+    this.cb = cb;
+    this.options = options;
+    this.observed = [];
+    this.disconnected = false;
+    globalThis.__io = this;
   }
   observe(el) {
-    this.observed.push(el)
+    this.observed.push(el);
   }
   unobserve(el) {
-    this.observed = this.observed.filter((e) => e !== el)
+    this.observed = this.observed.filter((e) => e !== el);
   }
   disconnect() {
-    this.disconnected = true
+    this.disconnected = true;
   }
   // helper: fire the callback for the first observed element
   trigger(isIntersecting) {
-    this.cb([{ isIntersecting, target: this.observed[0] }], this)
+    this.cb([{ isIntersecting, target: this.observed[0] }], this);
   }
 }
 
-globalThis.IntersectionObserver = MockIntersectionObserver
+globalThis.IntersectionObserver = MockIntersectionObserver;
 
 // jsdom has no scrollTo; some components attach scroll listeners.
-globalThis.scrollTo = vi.fn()
+globalThis.scrollTo = vi.fn();
 
 afterEach(() => {
-  cleanup()
-  globalThis.__io = undefined
-})
+  cleanup();
+  globalThis.__io = undefined;
+});

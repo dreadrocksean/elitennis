@@ -1,35 +1,34 @@
-import { useEffect, useState } from 'react'
-import toast from 'react-hot-toast'
-import { Plus, Trash2, Save, Loader2, Star } from 'lucide-react'
-import { Panel } from './AdminShell.jsx'
-import { saveSiteContent } from '../../lib/useSiteContent'
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { Plus, Trash2, Save, Loader2, Star } from 'lucide-react';
+import { Panel } from './AdminShell.jsx';
+import { saveSiteContent } from '../../lib/useSiteContent';
 
-let idc = 0
-const newId = () => `t_${Date.now()}_${idc++}`
+let idc = 0;
+const newId = () => `t_${Date.now()}_${idc++}`;
 
-export default function TestimonialsAdmin({ content }) {
-  const [items, setItems] = useState(content.testimonials ?? [])
-  const [saving, setSaving] = useState(false)
+const TestimonialsAdmin = ({ content }) => {
+  const [items, setItems] = useState(content.testimonials ?? []);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => setItems(content.testimonials ?? []), [content.testimonials])
+  useEffect(() => setItems(content.testimonials ?? []), [content.testimonials]);
 
   const update = (id, key, v) =>
-    setItems(items.map((it) => (it.id === id ? { ...it, [key]: v } : it)))
-  const remove = (id) => setItems(items.filter((it) => it.id !== id))
-  const add = () =>
-    setItems([...items, { id: newId(), name: '', role: '', quote: '', rating: 5 }])
+    setItems(items.map((it) => (it.id === id ? { ...it, [key]: v } : it)));
+  const remove = (id) => setItems(items.filter((it) => it.id !== id));
+  const add = () => setItems([...items, { id: newId(), name: '', role: '', quote: '', rating: 5 }]);
 
-  async function save() {
-    setSaving(true)
+  const save = async () => {
+    setSaving(true);
     try {
-      await saveSiteContent({ testimonials: items })
-      toast.success('Testimonials updated.')
+      await saveSiteContent({ testimonials: items });
+      toast.success('Testimonials updated.');
     } catch (e) {
-      toast.error(e.message || 'Save failed.')
+      toast.error(e.message || 'Save failed.');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <Panel
@@ -45,19 +44,44 @@ export default function TestimonialsAdmin({ content }) {
         {items.map((it) => (
           <div key={it.id} className="rounded-2xl border border-forest/10 p-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <input className="input" placeholder="Name" value={it.name} onChange={(e) => update(it.id, 'name', e.target.value)} />
-              <input className="input" placeholder="Role (e.g. Parent of junior player)" value={it.role} onChange={(e) => update(it.id, 'role', e.target.value)} />
+              <input
+                className="input"
+                placeholder="Name"
+                value={it.name}
+                onChange={(e) => update(it.id, 'name', e.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Role (e.g. Parent of junior player)"
+                value={it.role}
+                onChange={(e) => update(it.id, 'role', e.target.value)}
+              />
             </div>
-            <textarea className="input mt-3 min-h-[80px]" placeholder="Quote" value={it.quote} onChange={(e) => update(it.id, 'quote', e.target.value)} />
+            <textarea
+              className="input mt-3 min-h-[80px]"
+              placeholder="Quote"
+              value={it.quote}
+              onChange={(e) => update(it.id, 'quote', e.target.value)}
+            />
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} onClick={() => update(it.id, 'rating', n)} aria-label={`${n} stars`}>
-                    <Star size={20} className={n <= (it.rating ?? 5) ? 'fill-lime text-lime' : 'text-forest/20'} />
+                  <button
+                    key={n}
+                    onClick={() => update(it.id, 'rating', n)}
+                    aria-label={`${n} stars`}
+                  >
+                    <Star
+                      size={20}
+                      className={n <= (it.rating ?? 5) ? 'fill-lime text-lime' : 'text-forest/20'}
+                    />
                   </button>
                 ))}
               </div>
-              <button onClick={() => remove(it.id)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50">
+              <button
+                onClick={() => remove(it.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+              >
                 <Trash2 size={14} /> Remove
               </button>
             </div>
@@ -68,5 +92,7 @@ export default function TestimonialsAdmin({ content }) {
         <Plus size={16} /> Add testimonial
       </button>
     </Panel>
-  )
-}
+  );
+};
+
+export default TestimonialsAdmin;

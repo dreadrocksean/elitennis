@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, Phone } from 'lucide-react'
-import { CONTACT } from '../data/siteContent'
-import { useReveal } from '../lib/useReveal'
+import { Link } from 'react-router-dom';
+import { ArrowRight, Phone } from 'lucide-react';
+import { CONTACT } from '../data/siteContent';
+import { useReveal } from '../lib/useReveal';
 
-export default function CtaBand() {
-  const ref = useReveal()
+const CtaBand = () => {
+  const ref = useReveal();
   return (
     <section className="bg-white py-16">
       <div ref={ref} className="container-x reveal">
@@ -16,8 +16,8 @@ export default function CtaBand() {
               Ready to level up your game?
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-forest-900/70">
-              Lock in your first session today. Pick a time that works for you and pay
-              securely online — it takes two minutes.
+              Lock in your first session today. Pick a time that works for you and pay securely
+              online — it takes two minutes.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link to="/book" className="btn-primary text-base">
@@ -31,5 +31,7 @@ export default function CtaBand() {
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
+
+export default CtaBand;

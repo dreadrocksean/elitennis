@@ -1,0 +1,3 @@
+# Full gate before pushing: lint everything + full test suite with 100% coverage.
+yarn lint
+yarn coverage

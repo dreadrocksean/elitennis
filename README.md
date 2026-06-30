@@ -35,12 +35,12 @@ yarn dev                    # http://localhost:5173
 
 ### Environment variables (`.env`)
 
-| Var | Where to find it |
-| --- | --- |
-| `VITE_FIREBASE_*` | Firebase Console → Project Settings → "Your apps" (Web app) |
-| `VITE_OWNER_EMAIL` | The email that may access `/admin` (default: `adrian@bartholomusic.com`) |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe Dashboard → Developers → API keys (`pk_...`) |
-| `VITE_FUNCTIONS_BASE_URL` | After deploying functions, e.g. `https://us-central1-<project>.cloudfunctions.net` |
+| Var                           | Where to find it                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| `VITE_FIREBASE_*`             | Firebase Console → Project Settings → "Your apps" (Web app)                        |
+| `VITE_OWNER_EMAIL`            | The email that may access `/admin` (default: `adrian@bartholomusic.com`)           |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe Dashboard → Developers → API keys (`pk_...`)                                |
+| `VITE_FUNCTIONS_BASE_URL`     | After deploying functions, e.g. `https://us-central1-<project>.cloudfunctions.net` |
 
 > The site runs without Firebase configured — it falls back to the default content in `src/data/siteContent.js` — but booking, payments, and admin need the full setup.
 
@@ -88,6 +88,7 @@ After deploy, copy the `createCheckoutSession` URL base into `VITE_FUNCTIONS_BAS
 4. Copy the **Signing secret** (`whsec_...`) → that's your `STRIPE_WEBHOOK_SECRET` (re-run the `secrets:set` + redeploy if you set it after the first deploy).
 
 Test locally with the Stripe CLI:
+
 ```bash
 stripe listen --forward-to localhost:5001/<project>/us-central1/stripeWebhook
 ```
@@ -97,6 +98,7 @@ stripe listen --forward-to localhost:5001/<project>/us-central1/stripeWebhook
 ## 5. Add images
 
 Drop photos into `public/images/`. The site references:
+
 - `hero.jpg` — main hero photo
 - `about.jpg` — portrait for the About section
 - gallery images (any names — set their paths in **Admin → Gallery**)
@@ -147,10 +149,10 @@ functions/           Stripe Cloud Functions (checkout + webhook + cleanup)
 
 ## Routes
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Homepage |
-| `/book` | Booking calendar + payment |
-| `/booking-success` | Post-payment confirmation |
-| `/login` | Owner login |
-| `/admin` | Owner dashboard (protected) |
+| Route              | Purpose                     |
+| ------------------ | --------------------------- |
+| `/`                | Homepage                    |
+| `/book`            | Booking calendar + payment  |
+| `/booking-success` | Post-payment confirmation   |
+| `/login`           | Owner login                 |
+| `/admin`           | Owner dashboard (protected) |

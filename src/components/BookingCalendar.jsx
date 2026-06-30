@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   buildMonthGrid,
   toDateKey,
@@ -8,7 +8,7 @@ import {
   DOW,
   formatTime,
   isBeforeLeadTime,
-} from '../lib/dateUtils'
+} from '../lib/dateUtils';
 
 /**
  * Interactive month calendar + time-slot picker.
@@ -18,39 +18,39 @@ import {
  *   value: { date, time } | null
  *   onChange: (next) => void
  */
-export default function BookingCalendar({ availability, bookings, value, onChange }) {
-  const today = useMemo(() => new Date(), [])
-  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() })
+const BookingCalendar = ({ availability, bookings, value, onChange }) => {
+  const today = useMemo(() => new Date(), []);
+  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
 
-  const grid = useMemo(() => buildMonthGrid(view.year, view.month), [view])
+  const grid = useMemo(() => buildMonthGrid(view.year, view.month), [view]);
 
   const takenSet = useMemo(() => {
-    const s = new Set()
-    bookings.forEach((b) => s.add(`${b.date}_${b.time}`))
-    return s
-  }, [bookings])
+    const s = new Set();
+    bookings.forEach((b) => s.add(`${b.date}_${b.time}`));
+    return s;
+  }, [bookings]);
 
-  const todayKey = toDateKey(today)
+  const todayKey = toDateKey(today);
 
   const slotsForDate = (dateKey) => {
-    const [y, mo, d] = dateKey.split('-').map(Number)
-    const dow = new Date(y, mo - 1, d).getDay()
-    if (availability.blackouts?.includes(dateKey)) return []
-    const weekly = availability.weekly?.[dow] ?? []
+    const [y, mo, d] = dateKey.split('-').map(Number);
+    const dow = new Date(y, mo - 1, d).getDay();
+    if (availability.blackouts?.includes(dateKey)) return [];
+    const weekly = availability.weekly?.[dow] ?? [];
     return weekly
       .filter((t) => !takenSet.has(`${dateKey}_${t}`))
-      .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12))
-  }
+      .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12));
+  };
 
   const dayHasOpenSlots = (dateKey, inMonth) => {
-    if (!inMonth) return false
-    if (dateKey < todayKey) return false
-    return slotsForDate(dateKey).length > 0
-  }
+    if (!inMonth) return false;
+    if (dateKey < todayKey) return false;
+    return slotsForDate(dateKey).length > 0;
+  };
 
-  const canGoPrev = !(view.year === today.getFullYear() && view.month === today.getMonth())
+  const canGoPrev = !(view.year === today.getFullYear() && view.month === today.getMonth());
 
-  const selectedSlots = value?.date ? slotsForDate(value.date) : []
+  const selectedSlots = value?.date ? slotsForDate(value.date) : [];
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -65,8 +65,8 @@ export default function BookingCalendar({ availability, bookings, value, onChang
               disabled={!canGoPrev}
               onClick={() =>
                 setView((v) => {
-                  const m = v.month - 1
-                  return m < 0 ? { year: v.year - 1, month: 11 } : { ...v, month: m }
+                  const m = v.month - 1;
+                  return m < 0 ? { year: v.year - 1, month: 11 } : { ...v, month: m };
                 })
               }
               className="grid h-9 w-9 place-items-center rounded-lg border border-forest/15 text-forest disabled:opacity-30 hover:enabled:bg-forest-50"
@@ -77,8 +77,8 @@ export default function BookingCalendar({ availability, bookings, value, onChang
             <button
               onClick={() =>
                 setView((v) => {
-                  const m = v.month + 1
-                  return m > 11 ? { year: v.year + 1, month: 0 } : { ...v, month: m }
+                  const m = v.month + 1;
+                  return m > 11 ? { year: v.year + 1, month: 0 } : { ...v, month: m };
                 })
               }
               className="grid h-9 w-9 place-items-center rounded-lg border border-forest/15 text-forest hover:bg-forest-50"
@@ -91,16 +91,18 @@ export default function BookingCalendar({ availability, bookings, value, onChang
 
         <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-forest-700/50">
           {DOW.map((d) => (
-            <div key={d} className="py-2">{d}</div>
+            <div key={d} className="py-2">
+              {d}
+            </div>
           ))}
         </div>
 
         <div className="grid grid-cols-7 gap-1">
           {grid.map(({ date, inMonth }) => {
-            const key = toDateKey(date)
-            const open = dayHasOpenSlots(key, inMonth)
-            const isSelected = value?.date === key
-            const isToday = key === todayKey
+            const key = toDateKey(date);
+            const open = dayHasOpenSlots(key, inMonth);
+            const isSelected = value?.date === key;
+            const isToday = key === todayKey;
             return (
               <button
                 key={key + inMonth}
@@ -124,7 +126,7 @@ export default function BookingCalendar({ availability, bookings, value, onChang
                   <span className="absolute inset-x-3 bottom-1 h-px bg-forest/30" />
                 )}
               </button>
-            )
+            );
           })}
         </div>
 
@@ -147,7 +149,7 @@ export default function BookingCalendar({ availability, bookings, value, onChang
         <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2">
           {value?.date &&
             selectedSlots.map((t) => {
-              const active = value.time === t
+              const active = value.time === t;
               return (
                 <button
                   key={t}
@@ -161,7 +163,7 @@ export default function BookingCalendar({ availability, bookings, value, onChang
                 >
                   {formatTime(t)}
                 </button>
-              )
+              );
             })}
         </div>
 
@@ -172,5 +174,7 @@ export default function BookingCalendar({ availability, bookings, value, onChang
         )}
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default BookingCalendar;

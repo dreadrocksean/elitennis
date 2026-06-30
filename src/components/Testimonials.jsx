@@ -1,9 +1,9 @@
-import { Star, Quote } from 'lucide-react'
-import { useReveal } from '../lib/useReveal'
+import { Star, Quote } from 'lucide-react';
+import { useReveal } from '../lib/useReveal';
 
-export default function Testimonials({ testimonials }) {
-  const ref = useReveal()
-  if (!testimonials?.length) return null
+const Testimonials = ({ testimonials }) => {
+  const ref = useReveal();
+  if (!testimonials?.length) return null;
 
   return (
     <section id="testimonials" className="bg-forest py-20 text-white sm:py-28">
@@ -37,5 +37,7 @@ export default function Testimonials({ testimonials }) {
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
+
+export default Testimonials;

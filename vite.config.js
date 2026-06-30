@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -32,11 +32,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**/*.{js,jsx}'],
-      exclude: [
-        'src/test/**',
-        'src/**/*.test.{js,jsx}',
-        'src/index.css',
-      ],
+      exclude: ['src/test/**', 'src/**/*.test.{js,jsx}', 'src/index.css'],
       thresholds: {
         lines: 100,
         functions: 100,
@@ -45,4 +41,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

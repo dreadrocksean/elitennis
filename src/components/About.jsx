@@ -1,10 +1,10 @@
-import { Award, Footprints, Target } from 'lucide-react'
-import { useReveal } from '../lib/useReveal'
+import { Award, Footprints, Target } from 'lucide-react';
+import { useReveal } from '../lib/useReveal';
 
-const ICONS = [Award, Footprints, Target]
+const ICONS = [Award, Footprints, Target];
 
-export default function About({ bio, stats }) {
-  const ref = useReveal()
+const About = ({ bio, stats }) => {
+  const ref = useReveal();
 
   return (
     <section id="about" className="bg-white py-20 sm:py-28">
@@ -18,12 +18,14 @@ export default function About({ bio, stats }) {
                 alt="Coach Eli"
                 className="h-full w-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  e.currentTarget.nextSibling.style.display = 'flex'
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextSibling.style.display = 'flex';
                 }}
               />
               <div className="absolute inset-0 hidden items-center justify-center bg-forest-50 text-center text-forest/50">
-                <span className="px-8 text-sm">Add <code>/public/images/about.jpg</code></span>
+                <span className="px-8 text-sm">
+                  Add <code>/public/images/about.jpg</code>
+                </span>
               </div>
             </div>
 
@@ -50,7 +52,7 @@ export default function About({ bio, stats }) {
 
             <div className="mt-9 grid gap-4 sm:grid-cols-1">
               {bio.highlights.map((h, i) => {
-                const Icon = ICONS[i % ICONS.length]
+                const Icon = ICONS[i % ICONS.length];
                 return (
                   <div key={h.title} className="flex gap-4 rounded-2xl border border-forest/8 p-4">
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-forest text-lime">
@@ -61,12 +63,14 @@ export default function About({ bio, stats }) {
                       <p className="mt-0.5 text-sm text-forest-900/70">{h.body}</p>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
+
+export default About;

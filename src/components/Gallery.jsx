@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { X } from 'lucide-react'
-import { useReveal } from '../lib/useReveal'
+import { useState } from 'react';
+import { X } from 'lucide-react';
+import { useReveal } from '../lib/useReveal';
 
-export default function Gallery({ gallery }) {
-  const ref = useReveal()
-  const [active, setActive] = useState(null)
+const Gallery = ({ gallery }) => {
+  const ref = useReveal();
+  const [active, setActive] = useState(null);
 
-  if (!gallery?.length) return null
+  if (!gallery?.length) return null;
 
   return (
     <section id="gallery" className="bg-white py-20 sm:py-28">
@@ -35,7 +35,7 @@ export default function Gallery({ gallery }) {
                   loading="lazy"
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   onError={(e) => {
-                    e.currentTarget.style.opacity = '0.15'
+                    e.currentTarget.style.opacity = '0.15';
                   }}
                 />
               </div>
@@ -66,5 +66,7 @@ export default function Gallery({ gallery }) {
         </div>
       )}
     </section>
-  )
-}
+  );
+};
+
+export default Gallery;

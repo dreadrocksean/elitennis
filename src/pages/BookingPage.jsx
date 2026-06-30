@@ -1,36 +1,36 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { ArrowLeft, CalendarCheck, Loader2, Lock } from 'lucide-react'
-import Navbar from '../components/Navbar.jsx'
-import Footer from '../components/Footer.jsx'
-import BookingCalendar from '../components/BookingCalendar.jsx'
-import { useAvailability, useBookings, createPendingBooking, slotId } from '../lib/useBookings'
-import { useSiteContent } from '../lib/useSiteContent'
-import { startCheckout } from '../lib/checkout'
-import { formatDateLong, formatTime, toMonthKey } from '../lib/dateUtils'
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { ArrowLeft, CalendarCheck, Loader2, Lock } from 'lucide-react';
+import Navbar from '../components/Navbar.jsx';
+import Footer from '../components/Footer.jsx';
+import BookingCalendar from '../components/BookingCalendar.jsx';
+import { useAvailability, useBookings, createPendingBooking, slotId } from '../lib/useBookings';
+import { useSiteContent } from '../lib/useSiteContent';
+import { startCheckout } from '../lib/checkout';
+import { formatDateLong, formatTime, toMonthKey } from '../lib/dateUtils';
 
-export default function BookingPage() {
-  const { availability } = useAvailability()
-  const { content } = useSiteContent()
-  const [slot, setSlot] = useState(null) // { date, time }
-  const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' })
-  const [submitting, setSubmitting] = useState(false)
+const BookingPage = () => {
+  const { availability } = useAvailability();
+  const { content } = useSiteContent();
+  const [slot, setSlot] = useState(null); // { date, time }
+  const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   // Watch the visible month's bookings so taken slots disappear in realtime.
   const monthKey = useMemo(
     () => (slot?.date ? slot.date.slice(0, 7) : toMonthKey(new Date())),
-    [slot?.date]
-  )
-  const { bookings } = useBookings(monthKey)
+    [slot?.date],
+  );
+  const { bookings } = useBookings(monthKey);
 
-  const ready = slot?.date && slot?.time && form.name.trim() && validEmail(form.email)
-  const price = content.pricing?.price || '$40'
+  const ready = slot?.date && slot?.time && form.name.trim() && validEmail(form.email);
+  const price = content.pricing?.price || '$40';
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!ready || submitting) return
-    setSubmitting(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!ready || submitting) return;
+    setSubmitting(true);
     try {
       // Atomically hold the slot. Firestore rules reject if it already exists.
       await createPendingBooking({
@@ -40,7 +40,7 @@ export default function BookingPage() {
         email: form.email.trim(),
         phone: form.phone.trim(),
         notes: form.notes.trim(),
-      })
+      });
 
       await startCheckout({
         bookingId: slotId(slot.date, slot.time),
@@ -50,26 +50,29 @@ export default function BookingPage() {
         email: form.email.trim(),
         phone: form.phone.trim(),
         notes: form.notes.trim(),
-      })
+      });
       // On success the browser redirects to Stripe; code below won't run.
     } catch (err) {
-      const taken = String(err?.message || '').toLowerCase()
+      const taken = String(err?.message || '').toLowerCase();
       if (taken.includes('permission') || taken.includes('exists')) {
-        toast.error('Sorry — that slot was just taken. Please pick another.')
+        toast.error('Sorry — that slot was just taken. Please pick another.');
         // Clear just the time so the user re-picks an open slot on the same day.
-        setSlot((s) => ({ ...s, time: null }))
+        setSlot((s) => ({ ...s, time: null }));
       } else {
-        toast.error(err.message || 'Something went wrong. Please try again.')
+        toast.error(err.message || 'Something went wrong. Please try again.');
       }
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-forest-50">
       <Navbar />
       <main className="container-x pt-28 pb-20 sm:pt-32">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-forest-700 hover:text-forest">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-forest-700 hover:text-forest"
+        >
           <ArrowLeft size={16} /> Back home
         </Link>
 
@@ -77,8 +80,8 @@ export default function BookingPage() {
           <span className="eyebrow">Book a Session</span>
           <h1 className="mt-4 text-4xl text-forest sm:text-5xl">Reserve your court time</h1>
           <p className="mt-3 text-forest-900/70">
-            Pick an open day and time, share a few details, and pay securely. Your
-            {' '}{content.pricing?.title?.toLowerCase() || 'session'} is {price} for 60 minutes.
+            Pick an open day and time, share a few details, and pay securely. Your{' '}
+            {content.pricing?.title?.toLowerCase() || 'session'} is {price} for 60 minutes.
           </p>
         </div>
 
@@ -153,7 +156,11 @@ export default function BookingPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={!ready || submitting} className="btn-primary mt-5 w-full text-base disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={!ready || submitting}
+              className="btn-primary mt-5 w-full text-base disabled:opacity-50"
+            >
               {submitting ? (
                 <>
                   <Loader2 size={18} className="animate-spin" /> Redirecting…
@@ -172,7 +179,9 @@ export default function BookingPage() {
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
+const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+
+export default BookingPage;

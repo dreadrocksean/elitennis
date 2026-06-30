@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CalendarDays,
   LayoutDashboard,
@@ -8,14 +8,14 @@ import {
   Clock,
   LogOut,
   ExternalLink,
-} from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import { useSiteContent } from '../lib/useSiteContent'
-import BookingsAdmin from '../components/admin/BookingsAdmin.jsx'
-import ContentAdmin from '../components/admin/ContentAdmin.jsx'
-import GalleryAdmin from '../components/admin/GalleryAdmin.jsx'
-import TestimonialsAdmin from '../components/admin/TestimonialsAdmin.jsx'
-import AvailabilityAdmin from '../components/admin/AvailabilityAdmin.jsx'
+} from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import { useSiteContent } from '../lib/useSiteContent';
+import BookingsAdmin from '../components/admin/BookingsAdmin.jsx';
+import ContentAdmin from '../components/admin/ContentAdmin.jsx';
+import GalleryAdmin from '../components/admin/GalleryAdmin.jsx';
+import TestimonialsAdmin from '../components/admin/TestimonialsAdmin.jsx';
+import AvailabilityAdmin from '../components/admin/AvailabilityAdmin.jsx';
 
 const TABS = [
   { id: 'bookings', label: 'Bookings', icon: CalendarDays },
@@ -23,12 +23,12 @@ const TABS = [
   { id: 'gallery', label: 'Gallery', icon: Images },
   { id: 'testimonials', label: 'Testimonials', icon: MessageSquareQuote },
   { id: 'availability', label: 'Availability', icon: Clock },
-]
+];
 
-export default function Admin() {
-  const { user, logout } = useAuth()
-  const { content } = useSiteContent()
-  const [tab, setTab] = useState('bookings')
+const Admin = () => {
+  const { user, logout } = useAuth();
+  const { content } = useSiteContent();
+  const [tab, setTab] = useState('bookings');
 
   return (
     <div className="min-h-screen bg-forest-50">
@@ -59,22 +59,20 @@ export default function Admin() {
         {/* Sidebar */}
         <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
           {TABS.map((t) => {
-            const Icon = t.icon
-            const active = tab === t.id
+            const Icon = t.icon;
+            const active = tab === t.id;
             return (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={[
                   'flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition',
-                  active
-                    ? 'bg-forest text-white shadow-card'
-                    : 'text-forest-700 hover:bg-white',
+                  active ? 'bg-forest text-white shadow-card' : 'text-forest-700 hover:bg-white',
                 ].join(' ')}
               >
                 <Icon size={18} /> {t.label}
               </button>
-            )
+            );
           })}
         </nav>
 
@@ -88,5 +86,7 @@ export default function Admin() {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default Admin;
