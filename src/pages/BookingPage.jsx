@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, CalendarCheck, Loader2, Lock } from 'lucide-react';
@@ -8,7 +8,7 @@ import BookingCalendar from '../components/BookingCalendar.jsx';
 import { useAvailability, useBookings, createPendingBooking, slotId } from '../lib/useBookings';
 import { useSiteContent } from '../lib/useSiteContent';
 import { startCheckout } from '../lib/checkout';
-import { formatDateLong, formatTime, toMonthKey } from '../lib/dateUtils';
+import { formatDateLong, formatTime, toMonthKey, isBeforeLeadTime } from '../lib/dateUtils';
 
 const BookingPage = () => {
   const { availability } = useAvailability();
@@ -16,6 +16,12 @@ const BookingPage = () => {
   const [slot, setSlot] = useState(null); // { date, time }
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  // Arriving from a scrolled-down page (e.g. the home "Book" CTA) otherwise
+  // keeps that scroll position, leaving the calendar below the fold.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Watch the visible month's bookings so taken slots disappear in realtime.
   const monthKey = useMemo(
@@ -30,6 +36,13 @@ const BookingPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!ready || submitting) return;
+    // Re-check lead time at submit: the calendar may have been open long enough
+    // for the chosen slot to slip past its cutoff since it was picked.
+    if (isBeforeLeadTime(slot.date, slot.time, availability.leadHours ?? 12)) {
+      toast.error('That time just passed — please pick another.');
+      setSlot((s) => ({ ...s, time: null }));
+      return;
+    }
     setSubmitting(true);
     try {
       // Atomically hold the slot. Firestore rules reject if it already exists.

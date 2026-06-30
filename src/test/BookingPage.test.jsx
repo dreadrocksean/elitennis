@@ -8,11 +8,12 @@ const hooks = vi.hoisted(() => ({
   createPendingBooking: vi.fn(),
   startCheckout: vi.fn(),
   content: null, // set in beforeEach
+  availability: null, // set in beforeEach
 }));
 
 vi.mock('../lib/useBookings', async (o) => ({
   ...(await o()),
-  useAvailability: () => ({ availability: defaultAvailability, loading: false }),
+  useAvailability: () => ({ availability: hooks.availability, loading: false }),
   useBookings: () => ({ bookings: [], loading: false }),
   createPendingBooking: hooks.createPendingBooking,
 }));
@@ -52,9 +53,15 @@ beforeEach(() => {
   toast.success.mockReset();
   toast.error.mockReset();
   hooks.content = defaultContent;
+  hooks.availability = defaultAvailability;
 });
 
 describe('BookingPage', () => {
+  it('scrolls to the top of the page on mount', () => {
+    renderPage();
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
   it('keeps the pay button disabled until a slot and valid details are set', () => {
     renderPage();
     const pay = screen.getByRole('button', { name: /Pay/i });
@@ -107,6 +114,21 @@ describe('BookingPage', () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith('Something went wrong. Please try again.'),
     );
+  });
+
+  it('rejects a slot that slipped past its lead time before submit', async () => {
+    vi.useFakeTimers();
+    // No leadHours set -> exercises the `?? 12` default in the submit re-check.
+    hooks.availability = { ...defaultAvailability, leadHours: undefined };
+    // Mocked calendar picks 2026-07-10 16:00; jump to after that time so the
+    // submit-time lead-time re-check fails.
+    vi.setSystemTime(new Date(2026, 6, 10, 17, 0));
+    renderPage();
+    selectSlotAndFill();
+    fireEvent.click(screen.getByRole('button', { name: /Pay/i }));
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/just passed/));
+    expect(hooks.createPendingBooking).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('falls back to default copy when pricing is absent', () => {

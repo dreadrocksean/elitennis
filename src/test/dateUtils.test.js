@@ -10,6 +10,8 @@ import {
   formatDateLong,
   isSameDay,
   isBeforeLeadTime,
+  zonedTimeToMs,
+  zonedDateKey,
 } from '../lib/dateUtils';
 
 describe('pad', () => {
@@ -76,6 +78,30 @@ describe('isSameDay', () => {
   it('compares calendar days', () => {
     expect(isSameDay(new Date(2026, 6, 4, 9), new Date(2026, 6, 4, 23))).toBe(true);
     expect(isSameDay(new Date(2026, 6, 4), new Date(2026, 6, 5))).toBe(false);
+  });
+});
+
+describe('zonedTimeToMs', () => {
+  it('treats slot times as Central regardless of the runner timezone', () => {
+    // CDT (UTC-5) in summer: 4:00 PM Central === 21:00 UTC.
+    expect(zonedTimeToMs('2026-07-10', '16:00')).toBe(Date.UTC(2026, 6, 10, 21, 0));
+    // CST (UTC-6) in winter: 4:00 PM Central === 22:00 UTC.
+    expect(zonedTimeToMs('2026-12-16', '16:00')).toBe(Date.UTC(2026, 11, 16, 22, 0));
+  });
+});
+
+describe('zonedDateKey', () => {
+  it('maps an instant to the calendar day it falls on in Central', () => {
+    // 02:00 UTC is still the previous evening (21:00) in Central.
+    expect(zonedDateKey(new Date('2026-07-04T02:00:00Z'))).toBe('2026-07-03');
+    expect(zonedDateKey(new Date('2026-07-04T18:00:00Z'))).toBe('2026-07-04');
+  });
+
+  it('defaults to the current instant', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-04T18:00:00Z'));
+    expect(zonedDateKey()).toBe('2026-07-04');
+    vi.useRealTimers();
   });
 });
 

@@ -68,10 +68,56 @@ export const formatDateLong = (dateKey) => {
 
 export const isSameDay = (a, b) => toDateKey(a) === toDateKey(b);
 
-/** Is the slot too soon given leadHours of required notice? */
-export const isBeforeLeadTime = (dateKey, hhmm, leadHours, now = new Date()) => {
+// The business runs on Central time. Slot times are bare 'HH:mm' wall-clock in
+// this zone, so we interpret them in Central regardless of the visitor's own
+// timezone (a Denver visitor still sees/books Central times).
+const TIMEZONE = 'America/Chicago';
+
+/**
+ * Wall-clock `dateKey` + `hhmm` interpreted in Central time -> UTC epoch ms.
+ * DST-correct: derives Central's offset at that instant via Intl, so it's right
+ * from any visitor's browser.
+ */
+export const zonedTimeToMs = (dateKey, hhmm) => {
   const [y, mo, d] = dateKey.split('-').map(Number);
   const [h, m] = hhmm.split(':').map(Number);
-  const slot = new Date(y, mo - 1, d, h, m);
-  return slot.getTime() - now.getTime() < leadHours * 3600 * 1000;
+  const naiveUtc = Date.UTC(y, mo - 1, d, h, m);
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const map = {};
+  for (const p of dtf.formatToParts(new Date(naiveUtc))) map[p.type] = p.value;
+  const wallAsUtc = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour) % 24, // some ICU builds emit '24' for midnight
+    Number(map.minute),
+    Number(map.second),
+  );
+  return naiveUtc - (wallAsUtc - naiveUtc);
 };
+
+/** 'YYYY-MM-DD' for the given instant, as it falls on the calendar in Central. */
+export const zonedDateKey = (now = new Date()) => {
+  const map = {};
+  for (const p of new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now))
+    map[p.type] = p.value;
+  return `${map.year}-${map.month}-${map.day}`;
+};
+
+/** Is the slot too soon given leadHours of required notice (Central time)? */
+export const isBeforeLeadTime = (dateKey, hhmm, leadHours, now = new Date()) =>
+  zonedTimeToMs(dateKey, hhmm) - now.getTime() < leadHours * 3600 * 1000;

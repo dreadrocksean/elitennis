@@ -31,11 +31,52 @@ const LESSON = {
   currency: 'usd',
 };
 
+// Slot times are bare 'HH:mm' wall-clock in the coach's local zone (Kansas City).
+// This function runs in UTC, so we convert explicitly. Keep in sync with the
+// client default in src/lib/useBookings.js.
+const TIMEZONE = 'America/Chicago';
+const DEFAULT_LEAD_HOURS = 12;
+
 // Parse an owner-entered display price like "$1.53" or "$40" into integer cents.
 const priceToCents = (priceStr, fallback) => {
   const n = parseFloat(String(priceStr ?? '').replace(/[^0-9.]/g, ''));
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : fallback;
 };
+
+// 'YYYY-MM-DD' + 'HH:mm' interpreted as wall-clock in `timeZone` -> UTC epoch ms.
+// DST-correct: derives the zone's offset at that instant via Intl.
+const zonedWallTimeToMs = (date, time, timeZone) => {
+  const [y, mo, d] = date.split('-').map(Number);
+  const [h, m] = time.split(':').map(Number);
+  const naiveUtc = Date.UTC(y, mo - 1, d, h, m);
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const map = {};
+  for (const p of dtf.formatToParts(new Date(naiveUtc))) map[p.type] = p.value;
+  let hour = Number(map.hour);
+  if (hour === 24) hour = 0; // some ICU builds emit '24' for midnight
+  const wallAsUtc = Date.UTC(
+    map.year,
+    Number(map.month) - 1,
+    map.day,
+    hour,
+    map.minute,
+    map.second,
+  );
+  return naiveUtc - (wallAsUtc - naiveUtc);
+};
+
+// Mirror of the client's isBeforeLeadTime — is the slot too soon to book?
+const isBeforeLeadTime = (date, time, leadHours) =>
+  zonedWallTimeToMs(date, time, TIMEZONE) - Date.now() < leadHours * 3600 * 1000;
 
 // Restrict CORS to your deployed origins (add your Vercel + custom domains).
 const ALLOWED_ORIGINS = [
@@ -74,6 +115,22 @@ export const createCheckoutSession = onRequest(
       const snap = await bookingRef.get();
       if (!snap.exists) return res.status(409).send('Booking hold not found.');
       if (snap.data().status === 'paid') return res.status(409).send('Already paid.');
+
+      // Defense in depth: re-validate lead time server-side (the client checks
+      // too, but a stale page or crafted request could submit a passed slot).
+      let leadHours = DEFAULT_LEAD_HOURS;
+      try {
+        const availSnap = await db.collection('site').doc('availability').get();
+        const v = availSnap.data()?.leadHours;
+        if (Number.isFinite(v)) leadHours = v;
+      } catch (e) {
+        console.warn('Could not read site/availability; using default lead time.', e);
+      }
+      if (isBeforeLeadTime(date, time, leadHours)) {
+        // Release the now-invalid hold so the slot isn't locked until the sweep.
+        await bookingRef.delete();
+        return res.status(409).send('That time is no longer available.');
+      }
 
       const stripe = new Stripe(STRIPE_SECRET_KEY.value());
       const baseUrl =

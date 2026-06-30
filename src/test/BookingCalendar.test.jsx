@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import BookingCalendar from '../components/BookingCalendar.jsx';
 
 const allDays = {
@@ -144,6 +144,25 @@ describe('BookingCalendar slots', () => {
       />,
     );
     expect(screen.getByText('4:00 PM')).toBeInTheDocument();
+  });
+
+  it('drops a slot once the clock ticks past its lead time', () => {
+    // 4:59pm: the 5:00pm slot is still open (leadHours 0)…
+    vi.setSystemTime(new Date(2026, 11, 16, 16, 59));
+    render(
+      <BookingCalendar
+        availability={availability}
+        bookings={[]}
+        value={{ date: '2026-12-16', time: null }}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByText('5:00 PM')).toBeInTheDocument();
+
+    // …advance past 5:00pm and the minute tick recomputes — it's gone.
+    act(() => vi.advanceTimersByTime(2 * 60 * 1000));
+    expect(screen.queryByText('5:00 PM')).not.toBeInTheDocument();
+    expect(screen.getByText(/No open times left/)).toBeInTheDocument();
   });
 
   it('handles sparse availability (missing weekly/blackouts, default lead)', () => {

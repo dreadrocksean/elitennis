@@ -2,6 +2,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Run tests in the business timezone (Central) so wall-clock fixtures line up
+// with the app's Central-time logic regardless of the host/CI machine's zone.
+if (process.env.VITEST) process.env.TZ = 'America/Chicago';
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],

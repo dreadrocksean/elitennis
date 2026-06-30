@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   buildMonthGrid,
   toDateKey,
   toMonthKey,
+  zonedDateKey,
   MONTHS,
   DOW,
   formatTime,
@@ -19,8 +20,17 @@ import {
  *   onChange: (next) => void
  */
 const BookingCalendar = ({ availability, bookings, value, onChange }) => {
-  const today = useMemo(() => new Date(), []);
-  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
+  // `now` ticks every minute so slots that cross their lead-time boundary while
+  // the page sits open disappear on their own (instead of staying bookable).
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  // Anchor "today" and the visible month to Central time, not the visitor's.
+  const todayKey = zonedDateKey(now);
+  const [todayYear, todayMonth] = todayKey.split('-').map(Number);
+  const [view, setView] = useState({ year: todayYear, month: todayMonth - 1 });
 
   const grid = useMemo(() => buildMonthGrid(view.year, view.month), [view]);
 
@@ -30,8 +40,6 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
     return s;
   }, [bookings]);
 
-  const todayKey = toDateKey(today);
-
   const slotsForDate = (dateKey) => {
     const [y, mo, d] = dateKey.split('-').map(Number);
     const dow = new Date(y, mo - 1, d).getDay();
@@ -39,7 +47,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
     const weekly = availability.weekly?.[dow] ?? [];
     return weekly
       .filter((t) => !takenSet.has(`${dateKey}_${t}`))
-      .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12));
+      .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12, now));
   };
 
   const dayHasOpenSlots = (dateKey, inMonth) => {
@@ -48,7 +56,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
     return slotsForDate(dateKey).length > 0;
   };
 
-  const canGoPrev = !(view.year === today.getFullYear() && view.month === today.getMonth());
+  const canGoPrev = !(view.year === todayYear && view.month === todayMonth - 1);
 
   const selectedSlots = value?.date ? slotsForDate(value.date) : [];
 
@@ -142,7 +150,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
         </h3>
         <p className="mt-1 text-sm text-forest-700/60">
           {value?.date
-            ? 'All sessions are 60 minutes.'
+            ? 'All sessions are 60 minutes, shown in Central time (CT).'
             : 'Choose an available day on the calendar to see open times.'}
         </p>
 
