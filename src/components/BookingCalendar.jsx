@@ -150,7 +150,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
               >
                 {date.getDate()}
                 {open && !isSelected && (
-                  <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-forest" />
+                  <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#008020]" />
                 )}
                 {isToday && !isSelected && (
                   <span className="absolute inset-x-3 bottom-1 h-px bg-forest/30" />
@@ -161,7 +161,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
         </div>
 
         <p className="mt-4 flex items-center gap-2 text-xs text-forest-700/60">
-          <span className="h-2 w-2 rounded-full bg-forest" /> Available days
+          <span className="h-2 w-2 rounded-full bg-[#008020]" /> Available days
         </p>
       </div>
 
