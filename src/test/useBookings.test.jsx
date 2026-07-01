@@ -6,9 +6,16 @@ const state = vi.hoisted(() => ({ configured: true, snap: null, unsub: () => {} 
 
 vi.mock('../lib/firebase', () => ({
   db: { __db: true },
+  functions: { __fn: true },
   get firebaseConfigured() {
     return state.configured;
   },
+}));
+
+vi.mock('firebase/functions', () => ({
+  httpsCallable: vi.fn(() => async (payload) => ({
+    data: { ok: true, refunded: Boolean(payload?.refund) },
+  })),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -24,14 +31,14 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn(async () => {}),
 }));
 
-import { collection, query, where, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, setDoc } from 'firebase/firestore';
 import {
   useAvailability,
   useBookings,
   saveAvailability,
   slotId,
   createPendingBooking,
-  deleteBooking,
+  cancelBooking,
   defaultAvailability,
 } from '../lib/useBookings';
 
@@ -131,8 +138,8 @@ describe('writes', () => {
     expect(payload.notes).toBe('');
   });
 
-  it('deleteBooking removes the doc', async () => {
-    await deleteBooking('2026-07-06_16:00');
-    expect(deleteDoc).toHaveBeenCalled();
+  it('cancelBooking invokes the callable and returns its data', async () => {
+    const res = await cancelBooking({ id: '2026-07-06_16:00', refund: true });
+    expect(res).toEqual({ ok: true, refunded: true });
   });
 });

@@ -34,11 +34,26 @@ const AvailabilityAdmin = () => {
     setWeekly({ ...weekly, [dow]: next });
   };
 
+  // Blackout dates persist immediately — it isn't obvious they'd need the
+  // separate weekly "Save", so add/remove write straight to Firestore. `merge`
+  // means this only touches `blackouts`, leaving any unsaved weekly edits alone.
+  const persistBlackouts = async (next) => {
+    setBlackouts(next);
+    try {
+      await saveAvailability({ blackouts: next });
+      toast.success('Blackout dates updated.');
+    } catch (e) {
+      toast.error(e.message || 'Could not update blackout dates.');
+    }
+  };
+
   const addBlackout = () => {
     if (!newBlackout || blackouts.includes(newBlackout)) return;
-    setBlackouts([...blackouts, newBlackout].sort());
+    persistBlackouts([...blackouts, newBlackout].sort());
     setNewBlackout('');
   };
+
+  const removeBlackout = (d) => persistBlackouts(blackouts.filter((x) => x !== d));
 
   const save = async () => {
     setSaving(true);
@@ -112,7 +127,10 @@ const AvailabilityAdmin = () => {
           </Field>
 
           <div>
-            <span className="label">Blackout dates</span>
+            <span className="label">
+              Blackout dates{' '}
+              <span className="font-normal text-forest-700/50">— saved instantly</span>
+            </span>
             <div className="flex gap-2">
               <input
                 type="date"
@@ -135,7 +153,7 @@ const AvailabilityAdmin = () => {
                 >
                   {d}
                   <button
-                    onClick={() => setBlackouts(blackouts.filter((x) => x !== d))}
+                    onClick={() => removeBlackout(d)}
                     className="text-forest-700/50 hover:text-red-600"
                   >
                     <X size={13} />

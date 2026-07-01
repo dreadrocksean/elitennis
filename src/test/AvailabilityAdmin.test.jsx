@@ -40,15 +40,17 @@ describe('AvailabilityAdmin', () => {
     fireEvent.click(screen.getAllByText('4:00 PM')[2]);
   });
 
-  it('adds, dedupes, clears and removes blackout dates', () => {
+  it('adds, dedupes, clears and removes blackout dates — saving each change', () => {
+    saveAvailability.mockResolvedValue();
     render(<AvailabilityAdmin />);
     const dateInput = document.querySelector('input[type="date"]');
     const addBtn = screen.getByRole('button', { name: /^Add$/i });
 
-    // add a new date
+    // add a new date -> persists immediately (no Save click)
     fireEvent.change(dateInput, { target: { value: '2026-12-31' } });
     fireEvent.click(addBtn);
     expect(screen.getByText('2026-12-31')).toBeInTheDocument();
+    expect(saveAvailability).toHaveBeenCalledWith({ blackouts: ['2026-12-25', '2026-12-31'] });
 
     // empty input is ignored (value was reset after add)
     fireEvent.click(addBtn);
@@ -56,11 +58,35 @@ describe('AvailabilityAdmin', () => {
     // duplicate is ignored
     fireEvent.change(dateInput, { target: { value: '2026-12-25' } });
     fireEvent.click(addBtn);
+    expect(saveAvailability).toHaveBeenCalledTimes(1); // ignored add/dupe didn't save
 
-    // remove the original blackout via its X button
+    // remove the original blackout via its X button -> persists immediately
     const chip = screen.getByText('2026-12-25').closest('span');
     fireEvent.click(chip.querySelector('button'));
     expect(screen.queryByText('2026-12-25')).not.toBeInTheDocument();
+    expect(saveAvailability).toHaveBeenLastCalledWith({ blackouts: ['2026-12-31'] });
+  });
+
+  it('toasts when an auto-saved blackout change fails', async () => {
+    saveAvailability.mockRejectedValue(new Error('boom'));
+    render(<AvailabilityAdmin />);
+    fireEvent.change(document.querySelector('input[type="date"]'), {
+      target: { value: '2026-12-31' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('boom'));
+  });
+
+  it('falls back to a generic message when an auto-saved blackout fails', async () => {
+    saveAvailability.mockRejectedValue({});
+    render(<AvailabilityAdmin />);
+    fireEvent.change(document.querySelector('input[type="date"]'), {
+      target: { value: '2026-12-31' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Could not update blackout dates.'),
+    );
   });
 
   it('edits lead hours and saves a Number', async () => {

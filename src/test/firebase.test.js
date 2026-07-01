@@ -6,6 +6,8 @@ afterEach(() => {
   vi.doUnmock('firebase/app');
   vi.doUnmock('firebase/auth');
   vi.doUnmock('firebase/firestore');
+  vi.doUnmock('firebase/functions');
+  vi.doUnmock('firebase/storage');
 });
 
 const mockSdk = ({ initThrows = false } = {}) => {
@@ -17,6 +19,8 @@ const mockSdk = ({ initThrows = false } = {}) => {
   }));
   vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({ kind: 'auth' })) }));
   vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(() => ({ kind: 'db' })) }));
+  vi.doMock('firebase/functions', () => ({ getFunctions: vi.fn(() => ({ kind: 'functions' })) }));
+  vi.doMock('firebase/storage', () => ({ getStorage: vi.fn(() => ({ kind: 'storage' })) }));
 };
 
 describe('firebase config', () => {
@@ -35,6 +39,8 @@ describe('firebase config', () => {
     expect(mod.OWNER_EMAILS).toEqual(['coach@eli.com']);
     expect(mod.auth).toEqual({ kind: 'auth' });
     expect(mod.db).toEqual({ kind: 'db' });
+    expect(mod.functions).toEqual({ kind: 'functions' });
+    expect(mod.storage).toEqual({ kind: 'storage' });
     expect(mod.default).toEqual({ name: 'app' });
   });
 

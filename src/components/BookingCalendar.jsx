@@ -40,14 +40,17 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
     return s;
   }, [bookings]);
 
+  // Returns the day's slots as { time, booked }. Taken slots are kept (shown
+  // disabled with a "Booked" stamp so visitors see a busy coach); unbooked slots
+  // past the lead-time cutoff are dropped.
   const slotsForDate = (dateKey) => {
     const [y, mo, d] = dateKey.split('-').map(Number);
     const dow = new Date(y, mo - 1, d).getDay();
     if (availability.blackouts?.includes(dateKey)) return [];
-    const weekly = availability.weekly?.[dow] ?? [];
-    return weekly
-      .filter((t) => !takenSet.has(`${dateKey}_${t}`))
-      .filter((t) => !isBeforeLeadTime(dateKey, t, availability.leadHours ?? 12, now));
+    const lead = availability.leadHours ?? 12;
+    return (availability.weekly?.[dow] ?? [])
+      .map((time) => ({ time, booked: takenSet.has(`${dateKey}_${time}`) }))
+      .filter(({ time, booked }) => booked || !isBeforeLeadTime(dateKey, time, lead, now));
   };
 
   // First day (scanning ~1 year from today) that has an open slot, so we can
@@ -56,7 +59,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
   const firstAvailableKey = useMemo(() => {
     for (let i = 0; i < 366; i++) {
       const key = toDateKey(new Date(todayYear, todayMonth - 1, todayDay + i));
-      if (slotsForDate(key).length > 0) return key;
+      if (slotsForDate(key).some((s) => !s.booked)) return key;
     }
     return null;
   }, [todayKey, availability, takenSet, now]);
@@ -73,7 +76,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
   const dayHasOpenSlots = (dateKey, inMonth) => {
     if (!inMonth) return false;
     if (dateKey < todayKey) return false;
-    return slotsForDate(dateKey).length > 0;
+    return slotsForDate(dateKey).some((s) => !s.booked);
   };
 
   const canGoPrev = !(view.year === todayYear && view.month === todayMonth - 1);
@@ -178,12 +181,28 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
 
         <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2">
           {value?.date &&
-            selectedSlots.map((t) => {
-              const active = value.time === t;
+            selectedSlots.map(({ time, booked }) => {
+              if (booked) {
+                return (
+                  <div
+                    key={time}
+                    aria-disabled="true"
+                    className="relative cursor-not-allowed select-none overflow-hidden rounded-xl border border-forest/10 bg-forest-50 px-3 py-3 text-center text-sm font-semibold text-forest/30"
+                  >
+                    {formatTime(time)}
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="-rotate-[24deg] rounded border border-forest/40 px-1.5 text-[0.6rem] font-extrabold uppercase tracking-widest text-forest/50">
+                        Booked
+                      </span>
+                    </span>
+                  </div>
+                );
+              }
+              const active = value.time === time;
               return (
                 <button
-                  key={t}
-                  onClick={() => onChange({ date: value.date, time: t })}
+                  key={time}
+                  onClick={() => onChange({ date: value.date, time })}
                   className={[
                     'rounded-xl border px-3 py-3 text-sm font-semibold transition',
                     active
@@ -191,7 +210,7 @@ const BookingCalendar = ({ availability, bookings, value, onChange }) => {
                       : 'border-forest/15 text-forest hover:border-forest hover:bg-forest-50',
                   ].join(' ')}
                 >
-                  {formatTime(t)}
+                  {formatTime(time)}
                 </button>
               );
             })}

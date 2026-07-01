@@ -3,6 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const saveSiteContent = vi.hoisted(() => vi.fn());
 vi.mock('../lib/useSiteContent', () => ({ saveSiteContent }));
+const storageFns = vi.hoisted(() => ({ uploadGalleryImage: vi.fn(), deleteGalleryImage: vi.fn() }));
+vi.mock('../lib/storage', () => storageFns);
+const { uploadGalleryImage, deleteGalleryImage } = storageFns;
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: toast }));
 
@@ -17,9 +20,19 @@ const content = () => ({
 
 beforeEach(() => {
   saveSiteContent.mockReset();
+  uploadGalleryImage.mockReset();
+  deleteGalleryImage.mockReset();
   toast.success.mockReset();
   toast.error.mockReset();
 });
+
+const uploaded = () => ({
+  gallery: [
+    { id: 'u1', src: 'https://cdn/x.jpg', alt: 'X', caption: '', storagePath: 'gallery/x.jpg' },
+  ],
+});
+const lastTrash = (container) =>
+  [...container.querySelectorAll('button')].filter((b) => !b.textContent.trim()).at(-1);
 
 describe('GalleryAdmin', () => {
   it('edits, reorders, adds, removes and saves', async () => {
@@ -65,6 +78,52 @@ describe('GalleryAdmin', () => {
     render(<GalleryAdmin content={content()} />);
     fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Save failed.'));
+  });
+
+  it('uploads a file to storage and sets the image src', async () => {
+    uploadGalleryImage.mockResolvedValue({ url: 'https://cdn/up.jpg', path: 'gallery/1-up.jpg' });
+    const { container } = render(<GalleryAdmin content={content()} />);
+    const file = new File(['x'], 'up.jpg', { type: 'image/jpeg' });
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Image uploaded.'));
+    expect(uploadGalleryImage).toHaveBeenCalledWith(file);
+    expect(screen.getByDisplayValue('https://cdn/up.jpg')).toBeInTheDocument();
+  });
+
+  it('ignores an upload when no file is chosen', () => {
+    const { container } = render(<GalleryAdmin content={content()} />);
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [] } });
+    expect(uploadGalleryImage).not.toHaveBeenCalled();
+  });
+
+  it('toasts when an upload fails', async () => {
+    uploadGalleryImage.mockRejectedValue(new Error('boom'));
+    const { container } = render(<GalleryAdmin content={content()} />);
+    const file = new File(['x'], 'up.jpg', { type: 'image/jpeg' });
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Upload failed. Please try again.'),
+    );
+  });
+
+  it('deletes the storage file when removing an uploaded photo', async () => {
+    deleteGalleryImage.mockResolvedValue();
+    const { container } = render(<GalleryAdmin content={uploaded()} />);
+    fireEvent.click(lastTrash(container));
+    await waitFor(() => expect(deleteGalleryImage).toHaveBeenCalledWith('gallery/x.jpg'));
+    expect(screen.queryByDisplayValue('https://cdn/x.jpg')).not.toBeInTheDocument();
+  });
+
+  it('toasts when the storage delete fails but still removes the row', async () => {
+    deleteGalleryImage.mockRejectedValue(new Error('nope'));
+    const { container } = render(<GalleryAdmin content={uploaded()} />);
+    fireEvent.click(lastTrash(container));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'Photo removed, but its file may remain in storage.',
+      ),
+    );
+    expect(screen.queryByDisplayValue('https://cdn/x.jpg')).not.toBeInTheDocument();
   });
 
   it('re-syncs when the content prop changes', () => {

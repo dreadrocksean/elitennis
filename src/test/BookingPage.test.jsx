@@ -27,6 +27,7 @@ vi.mock('../components/BookingCalendar.jsx', () => ({
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: toast }));
+vi.mock('../contexts/AuthContext.jsx', () => ({ useAuth: () => ({ isOwner: false }) }));
 
 import BookingPage from '../pages/BookingPage.jsx';
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, query, setDoc, deleteDoc, where } from 'firebase/firestore';
-import { db, firebaseConfigured } from './firebase';
+import { collection, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions, firebaseConfigured } from './firebase';
 
 /**
  * Availability is stored as a weekly recurring template plus per-day overrides.
@@ -102,6 +103,12 @@ export const createPendingBooking = async ({ date, time, name, email, phone, not
   return id;
 };
 
-export const deleteBooking = async (id) => {
-  await deleteDoc(doc(db, 'bookings', id));
+/**
+ * Cancel a booking (owner only — enforced by the Cloud Function). Frees the
+ * slot and, when `refund` is true and the booking was paid, refunds the
+ * customer's card via Stripe. Returns { ok, refunded }.
+ */
+export const cancelBooking = async ({ id, refund = false }) => {
+  const { data } = await httpsCallable(functions, 'cancelBooking')({ id, refund });
+  return data;
 };

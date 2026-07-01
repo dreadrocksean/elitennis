@@ -9,13 +9,14 @@
  *  • STRIPE_SECRET_KEY        sk_live_... / sk_test_...
  *  • STRIPE_WEBHOOK_SECRET    whsec_...
  */
-import { onRequest } from 'firebase-functions/v2/https';
+import { onRequest, onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import Stripe from 'stripe';
+import { Resend } from 'resend';
 
 initializeApp();
 const db = getFirestore();
@@ -24,6 +25,12 @@ setGlobalOptions({ region: 'us-central1', maxInstances: 10 });
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
+const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+
+// Sender for owner notifications. Must be a verified Resend domain/sender —
+// elitenniskc.com is the obvious choice. Until a domain is verified you can use
+// 'onboarding@resend.dev' (only delivers to the Resend account's own address).
+const NOTIFY_FROM = 'EliTennisKC <noreply@elitenniskc.com>';
 
 const LESSON = {
   name: '60-Minute Private Tennis Lesson',
@@ -36,6 +43,10 @@ const LESSON = {
 // client default in src/lib/useBookings.js.
 const TIMEZONE = 'America/Chicago';
 const DEFAULT_LEAD_HOURS = 12;
+
+// Owner emails allowed to cancel/refund. Keep in sync with firestore.rules and
+// VITE_OWNER_EMAIL.
+const OWNER_EMAILS = ['elijahdona77@gmail.com', 'adrianbartholomew25@pm.me'];
 
 // Parse an owner-entered display price like "$1.53" or "$40" into integer cents.
 const priceToCents = (priceStr, fallback) => {
@@ -77,6 +88,34 @@ const zonedWallTimeToMs = (date, time, timeZone) => {
 // Mirror of the client's isBeforeLeadTime — is the slot too soon to book?
 const isBeforeLeadTime = (date, time, leadHours) =>
   zonedWallTimeToMs(date, time, TIMEZONE) - Date.now() < leadHours * 3600 * 1000;
+
+// Email the owner(s) about a new paid booking. Best-effort: a failure here must
+// never break the webhook (the payment is already finalized).
+const notifyOwnerOfBooking = async ({ date, time, name, email, phone, notes, amount }) => {
+  try {
+    const resend = new Resend(RESEND_API_KEY.value());
+    const dollars = ((amount ?? LESSON.amount) / 100).toFixed(2);
+    await resend.emails.send({
+      from: NOTIFY_FROM,
+      to: OWNER_EMAILS,
+      replyTo: email || undefined,
+      subject: `New booking — ${date} at ${time} (CT)`,
+      text: [
+        'A lesson was just booked and paid.',
+        '',
+        `Date:  ${date}`,
+        `Time:  ${time} (Central)`,
+        `Name:  ${name || '—'}`,
+        `Email: ${email || '—'}`,
+        `Phone: ${phone || '—'}`,
+        `Notes: ${notes || '—'}`,
+        `Paid:  $${dollars}`,
+      ].join('\n'),
+    });
+  } catch (err) {
+    console.error('Owner notification failed (booking still recorded):', err);
+  }
+};
 
 // Restrict CORS to your deployed origins (add your Vercel + custom domains).
 const ALLOWED_ORIGINS = [
@@ -190,11 +229,52 @@ export const createCheckoutSession = onRequest(
 );
 
 // ────────────────────────────────────────────────────────────────────────────
+// 1b) Owner cancels a booking — optionally refunding the customer via Stripe.
+//     Callable so the Firebase Auth token is verified for us.
+// ────────────────────────────────────────────────────────────────────────────
+export const cancelBooking = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (request) => {
+  const email = request.auth?.token?.email?.toLowerCase();
+  if (!email || !OWNER_EMAILS.includes(email)) {
+    throw new HttpsError('permission-denied', 'Owner access required.');
+  }
+
+  const { id, refund = false } = request.data || {};
+  if (!id) throw new HttpsError('invalid-argument', 'Missing booking id.');
+
+  const ref = db.collection('bookings').doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Booking not found.');
+  const booking = snap.data();
+
+  let refunded = false;
+  if (refund && booking.status === 'paid') {
+    if (!booking.paymentIntent) {
+      // No charge reference on file — don't free the slot under a false promise.
+      throw new HttpsError(
+        'failed-precondition',
+        'No payment reference on file — refund manually in Stripe, then cancel.',
+      );
+    }
+    try {
+      const stripe = new Stripe(STRIPE_SECRET_KEY.value());
+      await stripe.refunds.create({ payment_intent: booking.paymentIntent });
+      refunded = true;
+    } catch (err) {
+      console.error('Refund failed', err);
+      throw new HttpsError('internal', err.message || 'Refund failed.');
+    }
+  }
+
+  await ref.delete();
+  return { ok: true, refunded };
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // 2) Stripe webhook — finalize the booking on successful payment.
 //    Must use the raw body for signature verification.
 // ────────────────────────────────────────────────────────────────────────────
 export const stripeWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY] },
   async (req, res) => {
     const stripe = new Stripe(STRIPE_SECRET_KEY.value());
     const sig = req.headers['stripe-signature'];
@@ -224,6 +304,16 @@ export const stripeWebhook = onRequest(
               },
               { merge: true },
             );
+
+          await notifyOwnerOfBooking({
+            date: session.metadata?.date,
+            time: session.metadata?.time,
+            name: session.metadata?.name,
+            email: session.customer_email || session.customer_details?.email,
+            phone: session.metadata?.phone,
+            notes: session.metadata?.notes,
+            amount: session.amount_total,
+          });
         }
       }
 

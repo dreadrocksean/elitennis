@@ -66,9 +66,9 @@ describe('BookingCalendar navigation', () => {
 });
 
 describe('BookingCalendar slots', () => {
-  it('selects a day, hiding taken slots, and selects a time', () => {
+  it('selects a day, shows taken slots as booked, and selects an open time', () => {
     const onChange = vi.fn();
-    // 16:00 on Dec 16 is taken -> only 17:00 remains
+    // 16:00 on Dec 16 is taken -> shown disabled with a "Booked" stamp; 17:00 open
     const bookings = [{ date: '2026-12-16', time: '16:00', status: 'pending' }];
     const { rerender } = render(
       <BookingCalendar
@@ -92,7 +92,11 @@ describe('BookingCalendar slots', () => {
       />,
     );
     expect(screen.getByText('Pick a time')).toBeInTheDocument();
-    expect(screen.queryByText('4:00 PM')).not.toBeInTheDocument(); // taken
+    // Taken slot stays visible, stamped "Booked", and is not a clickable button.
+    expect(screen.getByText('4:00 PM')).toBeInTheDocument();
+    expect(screen.getByText('Booked')).toBeInTheDocument();
+    expect(screen.getByText('4:00 PM').closest('button')).toBeNull();
+
     const slot = screen.getByText('5:00 PM');
     fireEvent.click(slot);
     expect(onChange).toHaveBeenCalledWith({ date: '2026-12-16', time: '17:00' });

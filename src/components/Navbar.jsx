@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { CONTACT } from '../data/siteContent';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const LINKS = [
   { label: 'About', href: '/#about' },
@@ -14,6 +15,7 @@ const Navbar = ({ onDark = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { isOwner } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -56,6 +58,16 @@ const Navbar = ({ onDark = false }) => {
               {l.label}
             </a>
           ))}
+          {isOwner && (
+            <Link
+              to="/admin"
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                light ? 'text-white/90 hover:bg-white/10' : 'text-forest-700 hover:bg-forest-50'
+              }`}
+            >
+              Admin
+            </Link>
+          )}
           <Link to="/book" className="btn-lime ml-2">
             Book Now
           </Link>
@@ -84,6 +96,15 @@ const Navbar = ({ onDark = false }) => {
               {l.label}
             </a>
           ))}
+          {isOwner && (
+            <Link
+              to="/admin"
+              onClick={() => setOpen(false)}
+              className="block rounded-xl px-4 py-3 text-base font-medium text-forest-700 hover:bg-forest-50"
+            >
+              Admin
+            </Link>
+          )}
           <button
             onClick={() => {
               setOpen(false);

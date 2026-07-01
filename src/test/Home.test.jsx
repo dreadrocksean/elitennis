@@ -6,6 +6,7 @@ import { defaultContent } from '../data/siteContent';
 vi.mock('../lib/useSiteContent', () => ({
   useSiteContent: () => ({ content: defaultContent, loading: false }),
 }));
+vi.mock('../contexts/AuthContext.jsx', () => ({ useAuth: () => ({ isOwner: false }) }));
 
 import Home from '../pages/Home.jsx';
 

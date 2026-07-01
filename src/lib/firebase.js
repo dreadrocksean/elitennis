@@ -1,6 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'demo-key',
@@ -16,19 +18,21 @@ export const firebaseConfigured = Boolean(
   import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID,
 );
 
-let app, auth, db;
+let app, auth, db, functions, storage;
 
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  functions = getFunctions(app, 'us-central1');
+  storage = getStorage(app);
 } catch (error) {
   // Firebase initialization failed (e.g., invalid config)
   // App will use fallback content
   console.warn('Firebase initialization failed. Using fallback content.', error);
 }
 
-export { auth, db };
+export { auth, db, functions, storage };
 
 // One or more owner emails (comma-separated) allowed into /admin.
 export const OWNER_EMAILS = (import.meta.env.VITE_OWNER_EMAIL || '')

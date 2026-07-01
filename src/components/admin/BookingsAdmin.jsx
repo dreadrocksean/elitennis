@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Trash2, Phone, Mail, CalendarX2, CheckCircle2, Clock3 } from 'lucide-react';
 import { Panel } from './AdminShell.jsx';
-import { useBookings, deleteBooking } from '../../lib/useBookings';
+import { useBookings, cancelBooking } from '../../lib/useBookings';
 import { formatDateLong, formatTime, toMonthKey } from '../../lib/dateUtils';
 
 const BookingsAdmin = () => {
@@ -17,13 +17,21 @@ const BookingsAdmin = () => {
   const confirmed = sorted.filter((b) => b.status === 'paid' || b.status === 'confirmed');
   const pending = sorted.filter((b) => b.status === 'pending');
 
-  const handleDelete = async (id) => {
-    if (!confirm('Cancel and remove this booking? This frees the slot.')) return;
+  const handleCancel = async (b) => {
+    const paid = b.status === 'paid';
+    const dollars = ((b.amount ?? 0) / 100).toFixed(0);
+    const ok = confirm(
+      paid
+        ? `Cancel this booking and refund $${dollars} to ${b.name || 'the customer'}? ` +
+            'The slot stays booked until the refund completes.'
+        : 'Remove this booking? This frees the slot.',
+    );
+    if (!ok) return;
     try {
-      await deleteBooking(id);
-      toast.success('Booking removed.');
+      const { refunded } = await cancelBooking({ id: b.id, refund: paid });
+      toast.success(refunded ? 'Refunded and canceled.' : 'Booking canceled.');
     } catch (e) {
-      toast.error(e.message || 'Failed to remove.');
+      toast.error(e.message || 'Failed to cancel.');
     }
   };
 
@@ -33,12 +41,15 @@ const BookingsAdmin = () => {
         title="Bookings"
         description="Upcoming sessions. Paid bookings are confirmed automatically after Stripe checkout."
         action={
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="input h-10 w-auto py-0"
-          />
+          <label className="flex items-center gap-2 text-sm font-medium text-forest-700">
+            <span>Month</span>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="input h-10 w-auto py-0"
+            />
+          </label>
         }
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -60,7 +71,7 @@ const BookingsAdmin = () => {
         ) : (
           <ul className="divide-y divide-forest/10">
             {confirmed.map((b) => (
-              <BookingRow key={b.id} b={b} onDelete={handleDelete} />
+              <BookingRow key={b.id} b={b} onDelete={handleCancel} />
             ))}
           </ul>
         )}
@@ -73,7 +84,7 @@ const BookingsAdmin = () => {
         >
           <ul className="divide-y divide-forest/10">
             {pending.map((b) => (
-              <BookingRow key={b.id} b={b} onDelete={handleDelete} pending />
+              <BookingRow key={b.id} b={b} onDelete={handleCancel} pending />
             ))}
           </ul>
         </Panel>
@@ -122,7 +133,7 @@ const BookingRow = ({ b, onDelete, pending }) => {
         </div>
       </div>
       <button
-        onClick={() => onDelete(b.id)}
+        onClick={() => onDelete(b)}
         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
       >
         <Trash2 size={14} /> {pending ? 'Remove hold' : 'Cancel'}

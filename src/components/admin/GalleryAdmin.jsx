@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Save, Loader2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, GripVertical, Upload } from 'lucide-react';
 import { Panel } from './AdminShell.jsx';
 import { saveSiteContent } from '../../lib/useSiteContent';
+import { uploadGalleryImage, deleteGalleryImage } from '../../lib/storage';
 
 let idc = 0;
 const newId = () => `g_${Date.now()}_${idc++}`;
@@ -10,13 +11,41 @@ const newId = () => `g_${Date.now()}_${idc++}`;
 const GalleryAdmin = ({ content }) => {
   const [items, setItems] = useState(content.gallery ?? []);
   const [saving, setSaving] = useState(false);
+  const [uploadingId, setUploadingId] = useState(null);
 
   useEffect(() => setItems(content.gallery ?? []), [content.gallery]);
 
   const update = (id, key, v) =>
     setItems(items.map((it) => (it.id === id ? { ...it, [key]: v } : it)));
-  const remove = (id) => setItems(items.filter((it) => it.id !== id));
   const add = () => setItems([...items, { id: newId(), src: '', alt: '', caption: '' }]);
+
+  const remove = async (id) => {
+    const path = items.find((it) => it.id === id).storagePath;
+    setItems(items.filter((it) => it.id !== id));
+    if (path) {
+      try {
+        await deleteGalleryImage(path);
+      } catch {
+        toast.error('Photo removed, but its file may remain in storage.');
+      }
+    }
+  };
+
+  const handleUpload = async (id, file) => {
+    if (!file) return;
+    setUploadingId(id);
+    try {
+      const { url, path } = await uploadGalleryImage(file);
+      setItems((prev) =>
+        prev.map((it) => (it.id === id ? { ...it, src: url, storagePath: path } : it)),
+      );
+      toast.success('Image uploaded.');
+    } catch {
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   const move = (i, dir) => {
     const j = i + dir;
@@ -41,7 +70,7 @@ const GalleryAdmin = ({ content }) => {
   return (
     <Panel
       title="Photo Gallery"
-      description="Paste an image URL for each photo. Upload images to /public/images or use a hosted URL."
+      description="Upload a photo for each slot (stored in Firebase Storage), or paste a hosted image URL."
       action={
         <button onClick={save} disabled={saving} className="btn-primary h-10 px-5 py-0 text-sm">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save
@@ -82,12 +111,28 @@ const GalleryAdmin = ({ content }) => {
               )}
             </div>
             <div className="grid flex-1 gap-2 sm:grid-cols-3">
-              <input
-                className="input sm:col-span-3"
-                placeholder="Image URL (/images/court-1.jpg)"
-                value={it.src}
-                onChange={(e) => update(it.id, 'src', e.target.value)}
-              />
+              <div className="flex gap-2 sm:col-span-3">
+                <input
+                  className="input flex-1"
+                  placeholder="Image URL, or upload →"
+                  value={it.src}
+                  onChange={(e) => update(it.id, 'src', e.target.value)}
+                />
+                <label className="btn-ghost h-11 shrink-0 cursor-pointer px-4 py-0">
+                  {uploadingId === it.id ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Upload size={16} />
+                  )}{' '}
+                  Upload
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUpload(it.id, e.target.files[0])}
+                  />
+                </label>
+              </div>
               <input
                 className="input"
                 placeholder="Alt text"
