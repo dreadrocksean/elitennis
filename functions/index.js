@@ -2,8 +2,10 @@
  * EliTennisKC — Cloud Functions (2nd gen, runs on Google Cloud Run / Functions)
  *
  *  • createCheckoutSession  — HTTPS endpoint the frontend calls to start payment.
- *  • stripeWebhook          — Stripe calls this; we mark the booking `paid`.
+ *  • cancelBooking          — owner-only callable; refunds + frees a slot.
+ *  • stripeWebhook          — Stripe calls this; marks paid, emails owner+customer.
  *  • releaseStaleHolds      — scheduled cleanup of unpaid pending holds.
+ *  • sendReminders          — scheduled ~24h-before lesson reminder to customers.
  *
  * Secrets (set with: firebase functions:secrets:set NAME):
  *  • STRIPE_SECRET_KEY        sk_live_... / sk_test_...
@@ -17,6 +19,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 initializeApp();
 const db = getFirestore();
@@ -26,6 +29,23 @@ setGlobalOptions({ region: 'us-central1', maxInstances: 10 });
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const MANAGE_TOKEN_SECRET = defineSecret('MANAGE_TOKEN_SECRET');
+
+// Public site origin for links inside emails.
+const SITE_ORIGIN = 'https://elitenniskc.com';
+
+// HMAC token that lets a customer manage their own booking without logging in.
+const manageToken = (id) =>
+  createHmac('sha256', MANAGE_TOKEN_SECRET.value()).update(id).digest('hex');
+
+const verifyManageToken = (id, token) => {
+  const expected = Buffer.from(manageToken(id));
+  const got = Buffer.from(String(token || ''));
+  return expected.length === got.length && timingSafeEqual(expected, got);
+};
+
+const manageUrl = (id) =>
+  `${SITE_ORIGIN}/manage?id=${encodeURIComponent(id)}&token=${manageToken(id)}`;
 
 // Sender for owner notifications. Must be a verified Resend domain/sender —
 // elitenniskc.com is the obvious choice. Until a domain is verified you can use
@@ -115,6 +135,98 @@ const notifyOwnerOfBooking = async ({ date, time, name, email, phone, notes, amo
   } catch (err) {
     console.error('Owner notification failed (booking still recorded):', err);
   }
+};
+
+// ── Customer emails (confirmation + reminder) with a calendar invite ─────────
+// Pretty Central-time label, e.g. "Wed, Jul 15, 5:00 PM".
+const formatSlot = (date, time) =>
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(zonedWallTimeToMs(date, time, TIMEZONE)));
+
+// UTC epoch ms -> iCalendar UTC timestamp (YYYYMMDDTHHMMSSZ).
+const toIcsUtc = (ms) =>
+  new Date(ms)
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
+
+// A minimal .ics VEVENT for the 60-minute lesson.
+const buildIcs = ({ date, time, name }) => {
+  const startMs = zonedWallTimeToMs(date, time, TIMEZONE);
+  const uid = `${date}-${time}-elitenniskc`.replace(/[^\w.-]/g, '');
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//EliTennisKC//Booking//EN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}@elitenniskc.com`,
+    `DTSTAMP:${toIcsUtc(Date.now())}`,
+    `DTSTART:${toIcsUtc(startMs)}`,
+    `DTEND:${toIcsUtc(startMs + 60 * 60 * 1000)}`,
+    'SUMMARY:Tennis lesson with Coach Eli',
+    `DESCRIPTION:60-minute private tennis lesson${name ? ` for ${name}` : ''}.`,
+    'LOCATION:Kansas City',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+};
+
+// Email the customer. `kind` is 'confirmation' or 'reminder'. Best-effort.
+const emailCustomer = async ({ date, time, name, email }, kind) => {
+  if (!email) return;
+  try {
+    const resend = new Resend(RESEND_API_KEY.value());
+    const when = `${formatSlot(date, time)} CT`;
+    const confirming = kind === 'confirmation';
+    await resend.emails.send({
+      from: NOTIFY_FROM,
+      to: [email],
+      subject: confirming ? `You're booked — ${when}` : `Reminder — your tennis lesson is ${when}`,
+      text: [
+        `Hi${name ? ` ${name}` : ''},`,
+        '',
+        confirming
+          ? "You're confirmed for a 60-minute private tennis lesson with Coach Eli."
+          : 'Just a reminder about your upcoming lesson with Coach Eli.',
+        '',
+        `When: ${when}`,
+        'Where: Kansas City',
+        '',
+        confirming
+          ? 'Add it to your calendar with the attached invite. See you on the court!'
+          : 'See you on the court!',
+        '',
+        `Need to cancel? ${manageUrl(`${date}_${time}`)}`,
+        '',
+        '— EliTennisKC',
+      ].join('\n'),
+      attachments: [
+        { filename: 'tennis-lesson.ics', content: Buffer.from(buildIcs({ date, time, name })) },
+      ],
+    });
+  } catch (err) {
+    console.error(`Customer ${kind} email failed (booking still recorded):`, err);
+  }
+};
+
+// Current calendar date in Central, shifted by `offsetDays` — 'YYYY-MM-DD'.
+const centralDateKey = (offsetDays = 0) => {
+  const map = {};
+  for (const p of new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000)))
+    map[p.type] = p.value;
+  return `${map.year}-${map.month}-${map.day}`;
 };
 
 // Restrict CORS to your deployed origins (add your Vercel + custom domains).
@@ -270,11 +382,65 @@ export const cancelBooking = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// 1c) Customer self-service: view or cancel their own booking via a signed link
+//     (no login). Cancelling >24h out auto-refunds; inside 24h frees the slot.
+// ────────────────────────────────────────────────────────────────────────────
+export const manageBooking = onRequest(
+  { secrets: [STRIPE_SECRET_KEY, MANAGE_TOKEN_SECRET] },
+  async (req, res) => {
+    cors(req, res);
+    if (req.method === 'OPTIONS') return res.status(204).send('');
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    try {
+      const { id, token, action } = req.body || {};
+      if (!id || !token) return res.status(400).json({ error: 'Missing booking link details.' });
+      if (!verifyManageToken(id, token)) {
+        return res.status(403).json({ error: 'This link is invalid or has expired.' });
+      }
+
+      const ref = db.collection('bookings').doc(id);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        return res
+          .status(404)
+          .json({ error: 'This booking was not found — it may already be canceled.' });
+      }
+      const b = snap.data();
+
+      if (action === 'get') {
+        return res
+          .status(200)
+          .json({ date: b.date, time: b.time, name: b.name || '', status: b.status });
+      }
+
+      if (action === 'cancel') {
+        const hoursOut =
+          (zonedWallTimeToMs(b.date, b.time, TIMEZONE) - Date.now()) / (60 * 60 * 1000);
+        let refunded = false;
+        if (b.status === 'paid' && b.paymentIntent && hoursOut > 24) {
+          const stripe = new Stripe(STRIPE_SECRET_KEY.value());
+          await stripe.refunds.create({ payment_intent: b.paymentIntent });
+          refunded = true;
+        }
+        await ref.delete();
+        return res.status(200).json({ ok: true, refunded });
+      }
+
+      return res.status(400).json({ error: 'Unknown action.' });
+    } catch (err) {
+      console.error('manageBooking error', err);
+      return res.status(500).json({ error: err.message || 'Something went wrong.' });
+    }
+  },
+);
+
+// ────────────────────────────────────────────────────────────────────────────
 // 2) Stripe webhook — finalize the booking on successful payment.
 //    Must use the raw body for signature verification.
 // ────────────────────────────────────────────────────────────────────────────
 export const stripeWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY] },
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, MANAGE_TOKEN_SECRET] },
   async (req, res) => {
     const stripe = new Stripe(STRIPE_SECRET_KEY.value());
     const sig = req.headers['stripe-signature'];
@@ -305,15 +471,25 @@ export const stripeWebhook = onRequest(
               { merge: true },
             );
 
+          const customerEmail = session.customer_email || session.customer_details?.email;
           await notifyOwnerOfBooking({
             date: session.metadata?.date,
             time: session.metadata?.time,
             name: session.metadata?.name,
-            email: session.customer_email || session.customer_details?.email,
+            email: customerEmail,
             phone: session.metadata?.phone,
             notes: session.metadata?.notes,
             amount: session.amount_total,
           });
+          await emailCustomer(
+            {
+              date: session.metadata?.date,
+              time: session.metadata?.time,
+              name: session.metadata?.name,
+              email: customerEmail,
+            },
+            'confirmation',
+          );
         }
       }
 
@@ -350,3 +526,32 @@ export const releaseStaleHolds = onSchedule('every 30 minutes', async () => {
   if (!stale.empty) await batch.commit();
   console.log(`Released ${stale.size} stale holds.`);
 });
+
+// ────────────────────────────────────────────────────────────────────────────
+// 5) Remind customers ~24h before their lesson (once per booking).
+// ────────────────────────────────────────────────────────────────────────────
+export const sendReminders = onSchedule(
+  { schedule: 'every 60 minutes', secrets: [RESEND_API_KEY, MANAGE_TOKEN_SECRET] },
+  async () => {
+    // Query only today's + tomorrow's Central dates, then filter in code (avoids
+    // a composite index). reminderSent makes it idempotent across runs.
+    const snap = await db
+      .collection('bookings')
+      .where('date', '>=', centralDateKey(0))
+      .where('date', '<=', centralDateKey(1))
+      .get();
+
+    const now = Date.now();
+    let sent = 0;
+    for (const doc of snap.docs) {
+      const b = doc.data();
+      if (b.status !== 'paid' || b.reminderSent || !b.email) continue;
+      const diff = zonedWallTimeToMs(b.date, b.time, TIMEZONE) - now;
+      if (diff <= 0 || diff > 24 * 60 * 60 * 1000) continue; // only within the next 24h
+      await emailCustomer(b, 'reminder');
+      await doc.ref.set({ reminderSent: true }, { merge: true });
+      sent += 1;
+    }
+    console.log(`Sent ${sent} reminders.`);
+  },
+);

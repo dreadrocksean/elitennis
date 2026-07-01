@@ -8,6 +8,7 @@ vi.mock('../pages/BookingSuccess.jsx', () => ({ default: () => <div>success-page
 vi.mock('../pages/NotFound.jsx', () => ({ default: () => <div>notfound-page</div> }));
 vi.mock('../pages/Login.jsx', () => ({ default: () => <div>login-page</div> }));
 vi.mock('../pages/Admin.jsx', () => ({ default: () => <div>admin-page</div> }));
+vi.mock('../pages/ManageBooking.jsx', () => ({ default: () => <div>manage-page</div> }));
 vi.mock('../components/ProtectedRoute.jsx', () => ({ default: ({ children }) => children }));
 
 import App from '../App.jsx';
@@ -48,5 +49,10 @@ describe('App routing', () => {
   it('lazy-loads the protected admin route', async () => {
     renderAt('/admin');
     expect(await screen.findByText('admin-page')).toBeInTheDocument();
+  });
+
+  it('lazy-loads the manage-booking route', async () => {
+    renderAt('/manage');
+    expect(await screen.findByText('manage-page')).toBeInTheDocument();
   });
 });

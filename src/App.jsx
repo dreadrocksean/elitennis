@@ -9,6 +9,8 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 // Admin + login are owner-only — keep them out of the public bundle.
 const Login = lazy(() => import('./pages/Login.jsx'));
 const Admin = lazy(() => import('./pages/Admin.jsx'));
+// Reached only from confirmation-email links — lazy-load it too.
+const ManageBooking = lazy(() => import('./pages/ManageBooking.jsx'));
 
 const Loader = () => (
   <div className="grid min-h-screen place-items-center bg-forest-50">
@@ -22,6 +24,14 @@ const App = () => {
       <Route path="/" element={<Home />} />
       <Route path="/book" element={<BookingPage />} />
       <Route path="/booking-success" element={<BookingSuccess />} />
+      <Route
+        path="/manage"
+        element={
+          <Suspense fallback={<Loader />}>
+            <ManageBooking />
+          </Suspense>
+        }
+      />
       <Route
         path="/login"
         element={
