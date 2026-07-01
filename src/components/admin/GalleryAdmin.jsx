@@ -19,16 +19,23 @@ const GalleryAdmin = ({ content }) => {
     setItems(items.map((it) => (it.id === id ? { ...it, [key]: v } : it)));
   const add = () => setItems([...items, { id: newId(), src: '', alt: '', caption: '' }]);
 
+  // Uploads and removals persist immediately (like blackout dates) so the public
+  // gallery updates without a separate Save. Firestore is written first, then the
+  // Storage file is deleted — never the other way around.
   const remove = async (id) => {
-    const path = items.find((it) => it.id === id).storagePath;
-    setItems(items.filter((it) => it.id !== id));
-    if (path) {
-      try {
-        await deleteGalleryImage(path);
-      } catch {
-        toast.error('Photo removed, but its file may remain in storage.');
-      }
+    const item = items.find((it) => it.id === id);
+    const next = items.filter((it) => it.id !== id);
+    try {
+      await saveSiteContent({ gallery: next });
+    } catch (e) {
+      toast.error(e.message || 'Could not remove photo.');
+      return;
     }
+    setItems(next);
+    toast.success('Photo removed.');
+    // Best-effort file cleanup — the photo is already gone from the gallery, so a
+    // failure here (e.g. the file was already deleted) shouldn't alarm the owner.
+    if (item.storagePath) deleteGalleryImage(item.storagePath).catch(() => {});
   };
 
   const handleUpload = async (id, file) => {
@@ -36,9 +43,9 @@ const GalleryAdmin = ({ content }) => {
     setUploadingId(id);
     try {
       const { url, path } = await uploadGalleryImage(file);
-      setItems((prev) =>
-        prev.map((it) => (it.id === id ? { ...it, src: url, storagePath: path } : it)),
-      );
+      const next = items.map((it) => (it.id === id ? { ...it, src: url, storagePath: path } : it));
+      setItems(next);
+      await saveSiteContent({ gallery: next });
       toast.success('Image uploaded.');
     } catch {
       toast.error('Upload failed. Please try again.');
@@ -70,7 +77,7 @@ const GalleryAdmin = ({ content }) => {
   return (
     <Panel
       title="Photo Gallery"
-      description="Upload a photo for each slot (stored in Firebase Storage), or paste a hosted image URL."
+      description="Upload or remove photos — these save automatically. Use Save for URL, alt text, caption, and ordering changes."
       action={
         <button onClick={save} disabled={saving} className="btn-primary h-10 px-5 py-0 text-sm">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save

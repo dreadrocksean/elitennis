@@ -80,7 +80,8 @@ describe('GalleryAdmin', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Save failed.'));
   });
 
-  it('uploads a file to storage and sets the image src', async () => {
+  it('uploads a file to storage, sets the src, and auto-saves', async () => {
+    saveSiteContent.mockResolvedValue();
     uploadGalleryImage.mockResolvedValue({ url: 'https://cdn/up.jpg', path: 'gallery/1-up.jpg' });
     const { container } = render(<GalleryAdmin content={content()} />);
     const file = new File(['x'], 'up.jpg', { type: 'image/jpeg' });
@@ -88,6 +89,16 @@ describe('GalleryAdmin', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Image uploaded.'));
     expect(uploadGalleryImage).toHaveBeenCalledWith(file);
     expect(screen.getByDisplayValue('https://cdn/up.jpg')).toBeInTheDocument();
+    // persisted immediately with the new src on the first item
+    expect(saveSiteContent).toHaveBeenCalledWith({
+      gallery: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'g1',
+          src: 'https://cdn/up.jpg',
+          storagePath: 'gallery/1-up.jpg',
+        }),
+      ]),
+    });
   });
 
   it('ignores an upload when no file is chosen', () => {
@@ -106,24 +117,50 @@ describe('GalleryAdmin', () => {
     );
   });
 
-  it('deletes the storage file when removing an uploaded photo', async () => {
+  it('persists the removal to Firestore then deletes the storage file', async () => {
+    saveSiteContent.mockResolvedValue();
     deleteGalleryImage.mockResolvedValue();
     const { container } = render(<GalleryAdmin content={uploaded()} />);
     fireEvent.click(lastTrash(container));
-    await waitFor(() => expect(deleteGalleryImage).toHaveBeenCalledWith('gallery/x.jpg'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Photo removed.'));
+    // removal saved to Firestore (gallery now empty) BEFORE the file is deleted
+    expect(saveSiteContent).toHaveBeenCalledWith({ gallery: [] });
+    expect(deleteGalleryImage).toHaveBeenCalledWith('gallery/x.jpg');
     expect(screen.queryByDisplayValue('https://cdn/x.jpg')).not.toBeInTheDocument();
   });
 
-  it('toasts when the storage delete fails but still removes the row', async () => {
-    deleteGalleryImage.mockRejectedValue(new Error('nope'));
+  it('does not call storage delete when removing a photo with no stored file', async () => {
+    saveSiteContent.mockResolvedValue();
+    const { container } = render(<GalleryAdmin content={content()} />); // URL items, no storagePath
+    fireEvent.click(lastTrash(container));
+    await waitFor(() => expect(saveSiteContent).toHaveBeenCalled());
+    expect(deleteGalleryImage).not.toHaveBeenCalled();
+  });
+
+  it('still succeeds when the storage cleanup fails', async () => {
+    saveSiteContent.mockResolvedValue();
+    deleteGalleryImage.mockRejectedValue(new Error('gone'));
     const { container } = render(<GalleryAdmin content={uploaded()} />);
     fireEvent.click(lastTrash(container));
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        'Photo removed, but its file may remain in storage.',
-      ),
-    );
-    expect(screen.queryByDisplayValue('https://cdn/x.jpg')).not.toBeInTheDocument();
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Photo removed.'));
+    expect(deleteGalleryImage).toHaveBeenCalledWith('gallery/x.jpg');
+    expect(toast.error).not.toHaveBeenCalled(); // cleanup failure is swallowed
+  });
+
+  it('keeps the photo and toasts when the removal save fails', async () => {
+    saveSiteContent.mockRejectedValue(new Error('nope'));
+    const { container } = render(<GalleryAdmin content={uploaded()} />);
+    fireEvent.click(lastTrash(container));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('nope'));
+    expect(deleteGalleryImage).not.toHaveBeenCalled(); // never delete the file if the save failed
+    expect(screen.getByDisplayValue('https://cdn/x.jpg')).toBeInTheDocument(); // still shown
+  });
+
+  it('falls back to a generic message when the removal fails', async () => {
+    saveSiteContent.mockRejectedValue({});
+    const { container } = render(<GalleryAdmin content={uploaded()} />);
+    fireEvent.click(lastTrash(container));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not remove photo.'));
   });
 
   it('re-syncs when the content prop changes', () => {

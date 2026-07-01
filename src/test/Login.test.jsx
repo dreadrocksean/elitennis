@@ -25,7 +25,7 @@ const renderLogin = () => {
 };
 
 const fillAndSubmit = () => {
-  fireEvent.change(screen.getByPlaceholderText('eli@elitenniskc.com'), {
+  fireEvent.change(screen.getByPlaceholderText('elijahdona77@gmail.com'), {
     target: { value: ' eli@kc.com ' },
   });
   fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'secret' } });
