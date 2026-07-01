@@ -68,7 +68,17 @@ const Footer = () => {
           <p>
             © {new Date().getFullYear()} {CONTACT.brand}. All rights reserved.
           </p>
-          <p>Built by Adrian Bartholomew</p>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="hover:text-lime">
+              Privacy
+            </Link>
+            <Link to="/terms" className="hover:text-lime">
+              Terms
+            </Link>
+            <a href="mailto:adrianbartholomew25@pm.me" className="hover:text-lime">
+              Powered by Dreadrock Software
+            </a>
+          </div>
         </div>
       </div>
     </footer>

@@ -1,0 +1,10 @@
+{
+  "name": "EliTennisKC — Private Tennis Lessons",
+  "short_name": "EliTennisKC",
+  "description": "Private tennis lessons for kids & adults in Kansas City with Coach Eli.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef6ef",
+  "theme_color": "#14401f",
+  "icons": [{ "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }]
+}

@@ -47,4 +47,24 @@ describe('Gallery', () => {
       false,
     );
   });
+
+  it('closes the lightbox with the labeled close button', () => {
+    render(<Gallery gallery={items} />);
+    fireEvent.click(screen.getByAltText('Alpha').closest('button'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryAllByAltText('Alpha').some((n) => n.className.includes('max-h'))).toBe(
+      false,
+    );
+  });
+
+  it('closes the lightbox on Escape (and ignores other keys)', () => {
+    render(<Gallery gallery={items} />);
+    fireEvent.click(screen.getByAltText('Alpha').closest('button'));
+    const open = () => screen.queryAllByAltText('Alpha').some((n) => n.className.includes('max-h'));
+    expect(open()).toBe(true);
+    fireEvent.keyDown(window, { key: 'a' }); // non-Escape: stays open
+    expect(open()).toBe(true);
+    fireEvent.keyDown(window, { key: 'Escape' }); // closes
+    expect(open()).toBe(false);
+  });
 });

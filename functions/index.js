@@ -246,6 +246,33 @@ const cors = (req, res) => {
   res.set('Access-Control-Allow-Headers', 'Content-Type');
 };
 
+// Lightweight per-IP rate limit (Firestore-backed) to curb checkout/hold spam.
+// Fail-open: if the check itself errors, the request is allowed.
+const RATE_LIMIT = { max: 10, windowMs: 10 * 60 * 1000 };
+const rateLimited = async (req) => {
+  try {
+    const ip = ((req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown')
+      .replace(/[^\w.:-]/g, '_')
+      .slice(0, 200);
+    const ref = db.collection('rateLimits').doc(ip || 'unknown');
+    return await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const now = Date.now();
+      const d = snap.exists ? snap.data() : null;
+      if (!d || now - d.windowStart > RATE_LIMIT.windowMs) {
+        tx.set(ref, { count: 1, windowStart: now });
+        return false;
+      }
+      if (d.count >= RATE_LIMIT.max) return true;
+      tx.update(ref, { count: d.count + 1 });
+      return false;
+    });
+  } catch (err) {
+    console.warn('Rate-limit check failed; allowing request.', err);
+    return false;
+  }
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 // 1) Create a Stripe Checkout Session for a held booking.
 // ────────────────────────────────────────────────────────────────────────────
@@ -255,6 +282,9 @@ export const createCheckoutSession = onRequest(
     cors(req, res);
     if (req.method === 'OPTIONS') return res.status(204).send('');
     if (req.method !== 'POST') return res.status(405).send('Method not allowed');
+    if (await rateLimited(req)) {
+      return res.status(429).send('Too many attempts. Please wait a few minutes and try again.');
+    }
 
     try {
       const { bookingId, date, time, name, email, phone, notes, origin } = req.body || {};

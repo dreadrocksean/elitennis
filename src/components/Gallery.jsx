@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useReveal } from '../lib/useReveal';
 
 const Gallery = ({ gallery }) => {
   const ref = useReveal();
   const [active, setActive] = useState(null);
+
+  // Let keyboard users close the lightbox with Escape.
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setActive(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
 
   if (!gallery?.length) return null;
 
@@ -24,7 +34,7 @@ const Gallery = ({ gallery }) => {
             <button
               key={img.id || i}
               onClick={() => setActive(img)}
-              className={`group relative overflow-hidden rounded-2xl shadow-card focus:outline-none ${
+              className={`group relative overflow-hidden rounded-2xl shadow-card focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 ${
                 i % 5 === 0 ? 'col-span-2 row-span-2' : ''
               }`}
             >
@@ -51,10 +61,17 @@ const Gallery = ({ gallery }) => {
 
       {active && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo viewer"
           className="fixed inset-0 z-[60] grid place-items-center bg-forest-900/90 p-6 backdrop-blur-sm"
           onClick={() => setActive(null)}
         >
-          <button className="absolute right-6 top-6 text-white/80 hover:text-lime">
+          <button
+            onClick={() => setActive(null)}
+            aria-label="Close"
+            className="absolute right-6 top-6 text-white/80 hover:text-lime"
+          >
             <X size={28} />
           </button>
           <img
