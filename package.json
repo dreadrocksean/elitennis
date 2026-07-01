@@ -17,7 +17,9 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@sentry/react": "^10.62.0",
     "@stripe/stripe-js": "^4.8.0",
+    "@vercel/analytics": "^2.0.1",
     "date-fns": "^4.1.0",
     "firebase": "^11.0.2",
     "framer-motion": "^11.11.17",
